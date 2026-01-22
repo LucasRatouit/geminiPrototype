@@ -6,7 +6,6 @@ const genAI = new GoogleGenAI({
 
 // 3. Fonction simple d’appel
 export async function generateText(prompt) {
-  console.log("Generating text with prompt:", prompt);
   const res = await genAI.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: prompt,
