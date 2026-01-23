@@ -1,4 +1,4 @@
-FROM node:20-alpine as build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -17,3 +17,17 @@ COPY --from=build /app/dist/ /usr/share/nginx/html/
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
+
+FROM node:20-alpine AS dev
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm i
+
+COPY . .
+
+EXPOSE 4000
+
+CMD ["npm", "run", "dev"]

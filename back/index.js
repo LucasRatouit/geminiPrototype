@@ -16,7 +16,7 @@ Tu es un narrateur de RPG.
 Continue cette histoire en 3 phrases,
 en prenant en compte les précédents messages [${messageList.join(", ")}]
 (En sachant que les messages impairés sont des actions du joueur
-et les messages pairs sont des actions de l'IA). :
+et les messages pairs sont des actions du narrateur). :
 `;
 
 app.get("/ai/messages", (req, res) => {

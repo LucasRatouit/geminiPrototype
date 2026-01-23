@@ -5,17 +5,22 @@ services:
       - "3000:3000"
     environment:
       - PORT=3000
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     volumes:
       - ./back:/app
-    command: npm run start
+    command: npm run dev
 
   front:
-    build: ./front
+    build: 
+      context: ./front
+      target: dev
     ports:
-      - "80:80"
+      - "4000:4000"
     volumes:
       - ./front:/app
-    # command: npm run dev
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm run dev
     depends_on:
       - back
