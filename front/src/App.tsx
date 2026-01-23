@@ -9,7 +9,7 @@ function App() {
   const [prompt, setPrompt] = useState("");
   const [messageList, setMessageList] = useState<string[]>([]);
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://back:3000";
+  const API_URL = import.meta.env.VITE_API_URL || "http://back:3000/api";
 
   const getMessages = async () => {
     await axios.get(`${API_URL}/ai/messages`).then((res) => {
@@ -33,7 +33,7 @@ function App() {
   return (
     <div className="w-screen h-screen bg-background text-secondary-foreground">
       <div className="w-4/6 min-w-150 h-full mx-auto py-2 flex flex-col justify-between items-center">
-        <div className="w-full flex-1 space-y-2 overflow-y-scroll mb-4">
+        <div className="w-full flex-1 space-y-2 overflow-y-auto mb-4">
           {messageList.map((message, index) => (
             <p
               key={index}
