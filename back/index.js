@@ -11,14 +11,6 @@ app.use(express.json());
 
 const messageList = [];
 
-const promptContextTest = `
-Tu es un narrateur de RPG.
-Continue cette histoire en 3 phrases,
-en prenant en compte les précédents messages [${messageList.join(", ")}]
-(En sachant que les messages impairés sont des actions du joueur
-et les messages pairs sont des actions du narrateur). :
-`;
-
 app.get("/ai/messages", (req, res) => {
   res.json({ messages: messageList });
 });
@@ -28,13 +20,9 @@ app.post("/ai/generate", async (req, res) => {
   if (!userMessage) {
     return
   }
-  const prompt = `${promptContextTest} ${userMessage}`;
-  if (!prompt) {
-    return res.status(400).send("Prompt query parameter is required.");
-  }
 
   try {
-    const text = await generateText(prompt);
+    const text = await generateText(userMessage, messageList);
     messageList.push(userMessage);
     messageList.push(text);
     res.json({ text });
