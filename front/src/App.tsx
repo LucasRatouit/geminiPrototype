@@ -32,7 +32,7 @@ function App() {
 
   return (
     <div className="w-screen h-screen bg-background text-secondary-foreground">
-      <div className="w-4/6 min-w-150 h-full mx-auto py-2 flex flex-col justify-between items-center">
+      <div className="sm:w-4/6 w-full px-2 h-full mx-auto py-2 flex flex-col justify-between items-center">
         <div className="w-full flex-1 space-y-2 overflow-y-auto mb-4">
           {messageList.map((message, index) => (
             <p
