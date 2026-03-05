@@ -18,14 +18,13 @@ app.get("/ai/messages", (req, res) => {
 app.post("/ai/generate", async (req, res) => {
   const userMessage = req.body.prompt;
   if (!userMessage) {
-    return
+    return res.status(400).send("Prompt is required.");
   }
 
   try {
-    const text = await generateText(userMessage, messageList);
-    messageList.push(userMessage);
-    messageList.push(text);
-    res.json({ text });
+    const aiResponse = await generateText(userMessage);
+    // On peut logger ici si besoin pour le debug
+    res.json({ text: aiResponse });
   } catch (error) {
     console.error("Error generating text:", error);
     res.status(500).send("Error generating text.");

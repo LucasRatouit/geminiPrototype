@@ -1,27 +1,47 @@
 import { GoogleGenAI } from "@google/genai";
 
 const genAI = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
+  apiKey: process.env.GEMINI_API_KEY,
 });
 
-export async function generateText(prompt, messageList) {
+export async function generateText(prompt) {
   const systemInstruction = `
-    Tu es un narrateur de RPG.
-    Continue cette histoire en 2 ou 3 phrases.
-    Respecte strictement la cohérence de l'histoire en prenant en compte les précédents messages [${messageList.join(", ")}].
-    (En sachant que les messages impairés sont des actions du joueur et les messages pairs sont des actions du narrateur).
+    Tu es un narrateur de RPG expert pour l'univers de l'Académie des Voiles Éternelles.
+    
+    RÈGLES STRICTES :
+    1. Réponds UNIQUEMENT par un objet JSON valide.
+    2. N'ajoute AUCUN texte avant ou après le JSON (pas de 'Voici le JSON', pas de markdown).
+    3. Le JSON doit suivre ce format exact :
+    {
+      "story": "Texte narratif ici. Utilise \\n pour les sauts de ligne.",
+      "actions": []
+    }
   `;
 
-  const res = await genAI.models.generateContent({
-    model: "gemini-3-flash-preview",
-    config: {
-      systemInstruction: systemInstruction,
-      temperature: 0.9, // Ajustez la température selon vos besoins - plus élevée = plus créatif - plus basse = plus conservateur
-      topP: 0.95, // Ajustez la topP selon vos besoins - plus haute = plus créatif - plus basse = plus conservateur
-      topK: 40, // Ajustez la topK selon vos besoins - plus haute = plus creatif - plus basse = plus conservateur
-    },
-    contents: prompt
-  });
+  try {
+    const res = await genAI.models.generateContent({
+      model: "gemini-3-flash-preview",
+      config: {
+        systemInstruction: systemInstruction,
+        temperature: 0.7,
+        maxOutputTokens: 2000, // Augmenté pour éviter la coupure du JSON
+        responseMimeType: "application/json",
+        thinkingConfig: {
+          thinkingLevel: "low"
+        }
+      },
+      contents: [{ role: "user", parts: [{ text: prompt }] }]
+    });
 
-  return res.candidates[0].content.parts[0].text;
+    let rawText = res.candidates[0].content.parts[0].text;
+    return JSON.parse(rawText);
+
+  } catch (error) {
+    console.error("Erreur Gemini ou Parsing:", error);
+    // En cas d'erreur, on renvoie un objet valide par défaut pour ne pas casser le front
+    return {
+      story: "Une perturbation magique empêche la vision de se former correctement... (Erreur de l'oracle)",
+      actions: []
+    };
+  }
 }
