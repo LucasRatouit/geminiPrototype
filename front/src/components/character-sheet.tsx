@@ -737,9 +737,9 @@ export default function CharacterSheet() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-        {/* LEFT - Personnage */}
-        <div className="space-y-4 order-2 lg:order-1">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl mx-auto items-start">
+        {/* LEFT - Combat (Order 1 mobile, Col 1 desktop) */}
+        <div className="order-1 lg:col-span-5">
           <Card title="⚔ Combat" accent={accentColor}>
             <StatBar
               value={char.hp}
@@ -754,7 +754,133 @@ export default function CharacterSheet() {
               label="💙 Mana"
             />
           </Card>
+        </div>
 
+        {/* RIGHT - Journal (Order 2 mobile, Col 2 desktop, Sticky) */}
+        <div className="flex flex-col h-[70vh] lg:h-[85vh] order-2 lg:col-span-7 lg:row-span-2 lg:sticky lg:top-8">
+          <div
+            style={{
+              background: "#110e06",
+              border: "1px solid " + accentColor,
+              borderRadius: 8,
+              padding: 20,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                color: accentColor,
+                letterSpacing: 4,
+                textTransform: "uppercase",
+                marginBottom: 20,
+                textAlign: 'center',
+                borderBottom: "1px solid rgba(192, 120, 32, 0.2)",
+                paddingBottom: 10
+              }}
+            >
+              📜 Journal d'Aventure
+            </div>
+            
+            <div 
+              style={{ 
+                flex: 1, 
+                overflowY: "auto", 
+                paddingRight: 10,
+                marginBottom: 20,
+                scrollBehavior: 'smooth'
+              }}
+            >
+              {log.map(function (entry, i) {
+                return (
+                  <JournalEntry key={i} entry={entry} isLatest={i === log.length - 1} />
+                );
+              })}
+              <div ref={logEndRef} />
+            </div>
+
+            {/* Input d'action intégré au journal */}
+            <div style={{
+              display: 'flex',
+              background: 'rgba(0,0,0,0.3)',
+              border: '1px solid ' + (isGenerating ? '#4a3010' : 'rgba(192, 120, 32, 0.4)'),
+              borderRadius: 8,
+              overflow: 'hidden',
+              minHeight: 50,
+              transition: 'all 0.3s ease'
+            }}>
+              <textarea
+                value={playerInput}
+                onChange={(e) => setPlayerInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendAction();
+                  }
+                }}
+                placeholder={isGenerating ? "L'oracle réfléchit..." : "Que fait Élysia ?..."}
+                disabled={isGenerating}
+                rows={1}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '12px 16px',
+                  color: isGenerating ? '#4a3820' : '#e8d5a3',
+                  fontFamily: 'inherit',
+                  fontSize: 14,
+                  outline: 'none',
+                  resize: 'none'
+                }}
+              />
+              <button
+                onClick={handleContinueStory}
+                disabled={isGenerating}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderLeft: '1px solid rgba(192, 120, 32, 0.2)',
+                  color: isGenerating ? '#4a3820' : '#c9b08a',
+                  padding: '0 15px',
+                  cursor: isGenerating ? 'not-allowed' : 'pointer',
+                  fontSize: 11,
+                  fontWeight: 'bold',
+                  fontFamily: 'inherit',
+                  textTransform: 'uppercase',
+                  opacity: 0.8,
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isGenerating ? "..." : "Continuer"}
+              </button>
+              <button
+                onClick={handleSendAction}
+                disabled={!playerInput.trim() || isGenerating}
+                style={{
+                  background: isGenerating ? 'transparent' : 'rgba(192, 120, 32, 0.1)',
+                  border: 'none',
+                  borderLeft: '1px solid rgba(192, 120, 32, 0.2)',
+                  color: (playerInput.trim() && !isGenerating) ? accentColor : '#4a3820',
+                  padding: '0 20px',
+                  cursor: (playerInput.trim() && !isGenerating) ? 'pointer' : 'not-allowed',
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  fontFamily: 'inherit',
+                  textTransform: 'uppercase',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isGenerating ? "..." : "Agir"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* LEFT - Autres Statistiques et Capacités (Order 3 mobile, Col 1 desktop) */}
+        <div className="space-y-4 order-3 lg:col-span-5">
           <Card title="📊 Statistiques" accent={accentColor}>
             <div className="grid grid-cols-2 gap-x-6">
               {Object.entries(char.stats).map(function (e) {
@@ -917,129 +1043,6 @@ export default function CharacterSheet() {
                 );
               })}
             </Card>
-          </div>
-        </div>
-
-        {/* RIGHT - Journal */}
-        <div className="flex flex-col h-[70vh] lg:h-[80vh] order-1 lg:order-2">
-          <div
-            style={{
-              background: "#110e06",
-              border: "1px solid " + accentColor,
-              borderRadius: 8,
-              padding: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100%',
-              boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
-            }}
-          >
-            <div
-              style={{
-                fontSize: 11,
-                color: accentColor,
-                letterSpacing: 4,
-                textTransform: "uppercase",
-                marginBottom: 20,
-                textAlign: 'center',
-                borderBottom: "1px solid rgba(192, 120, 32, 0.2)",
-                paddingBottom: 10
-              }}
-            >
-              📜 Journal d'Aventure
-            </div>
-            
-            <div 
-              style={{ 
-                flex: 1, 
-                overflowY: "auto", 
-                paddingRight: 10,
-                marginBottom: 20,
-                scrollBehavior: 'smooth'
-              }}
-            >
-              {log.map(function (entry, i) {
-                return (
-                  <JournalEntry key={i} entry={entry} isLatest={i === log.length - 1} />
-                );
-              })}
-              <div ref={logEndRef} />
-            </div>
-
-            {/* Input d'action intégré au journal */}
-            <div style={{
-              display: 'flex',
-              background: 'rgba(0,0,0,0.3)',
-              border: '1px solid ' + (isGenerating ? '#4a3010' : 'rgba(192, 120, 32, 0.4)'),
-              borderRadius: 8,
-              overflow: 'hidden',
-              minHeight: 50,
-              transition: 'all 0.3s ease'
-            }}>
-              <textarea
-                value={playerInput}
-                onChange={(e) => setPlayerInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendAction();
-                  }
-                }}
-                placeholder={isGenerating ? "L'oracle réfléchit..." : "Que fait Élysia ?..."}
-                disabled={isGenerating}
-                rows={1}
-                style={{
-                  flex: 1,
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '12px 16px',
-                  color: isGenerating ? '#4a3820' : '#e8d5a3',
-                  fontFamily: 'inherit',
-                  fontSize: 14,
-                  outline: 'none',
-                  resize: 'none'
-                }}
-              />
-              <button
-                onClick={handleContinueStory}
-                disabled={isGenerating}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderLeft: '1px solid rgba(192, 120, 32, 0.2)',
-                  color: isGenerating ? '#4a3820' : '#c9b08a',
-                  padding: '0 15px',
-                  cursor: isGenerating ? 'not-allowed' : 'pointer',
-                  fontSize: 11,
-                  fontWeight: 'bold',
-                  fontFamily: 'inherit',
-                  textTransform: 'uppercase',
-                  opacity: 0.8,
-                  transition: 'all 0.2s'
-                }}
-              >
-                {isGenerating ? "..." : "Continuer"}
-              </button>
-              <button
-                onClick={handleSendAction}
-                disabled={!playerInput.trim() || isGenerating}
-                style={{
-                  background: isGenerating ? 'transparent' : 'rgba(192, 120, 32, 0.1)',
-                  border: 'none',
-                  borderLeft: '1px solid rgba(192, 120, 32, 0.2)',
-                  color: (playerInput.trim() && !isGenerating) ? accentColor : '#4a3820',
-                  padding: '0 20px',
-                  cursor: (playerInput.trim() && !isGenerating) ? 'pointer' : 'not-allowed',
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                  fontFamily: 'inherit',
-                  textTransform: 'uppercase',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {isGenerating ? "..." : "Agir"}
-              </button>
-            </div>
           </div>
         </div>
       </div>
