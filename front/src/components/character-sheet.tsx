@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -428,40 +428,34 @@ function SpellCard({ spell, onCast, canCast }) {
 function JournalEntry({ entry, isLatest }) {
   const isAction = entry.type === "action";
   const isSystem = entry.type === "system";
-  const bg = isSystem ? "#0d1018" : isAction ? "#0d1208" : "#0d0a04";
-  const borderColor = isLatest
-    ? isSystem
-      ? "#304060"
-      : isAction
-        ? "#304820"
-        : "#5c3d11"
-    : "#1e1608";
-  const textColor = isLatest
-    ? isSystem
-      ? "#6090c0"
-      : isAction
-        ? "#90c060"
-        : "#e8d5a3"
-    : isSystem
-      ? "#2a3848"
-      : isAction
-        ? "#304820"
-        : "#5a4020";
+  const isNarration = entry.type === "narration";
+
   return (
     <div
       style={{
-        padding: "10px 12px",
-        marginBottom: 8,
-        borderRadius: 4,
-        background: bg,
-        border: "1px solid " + borderColor,
-        fontSize: 12,
-        lineHeight: 1.85,
-        color: textColor,
-        fontStyle: !isAction && !isSystem ? "italic" : "normal",
-        opacity: isLatest ? 1 : 0.65,
+        padding: "12px 16px",
+        marginBottom: 12,
+        borderRadius: 8,
+        background: isSystem 
+          ? "rgba(13, 20, 30, 0.4)" 
+          : isAction 
+            ? "rgba(15, 25, 10, 0.4)" 
+            : "transparent",
+        borderLeft: isLatest 
+          ? `3px solid ${isSystem ? "#6090c0" : isAction ? "#90c060" : "#c07820"}` 
+          : "1px solid rgba(232, 213, 163, 0.1)",
+        fontSize: 14,
+        lineHeight: 1.7,
+        color: isSystem ? "#70a0d0" : isAction ? "#a0d070" : "#e8d5a3",
+        fontStyle: isNarration ? "italic" : "normal",
+        opacity: isLatest ? 1 : 0.7,
+        transition: "all 0.5s ease",
+        transform: isLatest ? "translateX(0)" : "translateX(0)",
+        boxShadow: isLatest && !isNarration ? `0 0 15px rgba(0,0,0,0.3)` : "none"
       }}
     >
+      {isSystem && <span style={{ marginRight: 8, fontSize: 10 }}>[SYSTEM]</span>}
+      {isAction && <span style={{ marginRight: 8, fontSize: 10 }}>[ACTION]</span>}
       {entry.text}
     </div>
   );
@@ -473,10 +467,17 @@ export default function CharacterSheet() {
   const [weaponOpen, setWeaponOpen] = useState(false);
   const [playerInput, setPlayerInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const logEndRef = useRef(null);
+
+  useEffect(() => {
+    if (logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [log]);
 
   function addLog(entry) {
     setLog(function (prev) {
-      return [entry].concat(prev).slice(0, 15);
+      return prev.concat([entry]).slice(-30);
     });
   }
 
@@ -488,7 +489,7 @@ export default function CharacterSheet() {
     setIsGenerating(true);
 
     // Ajouter l'action du joueur au log
-    addLog({ type: "action", text: "➢ " + actionText });
+    addLog({ type: "action", text: actionText });
 
     try {
       const res = await generateActionText(char, log, actionText);
@@ -562,7 +563,7 @@ export default function CharacterSheet() {
     });
     addLog({
       type: "action",
-      text: "🧪 Élysia débouche discrètement une fiole de mana et la vide d'un geste élégant. La chaleur arcanique se diffuse dans ses veines. (+40 mana)",
+      text: "Élysia débouche discrètement une fiole de mana et la vide d'un geste élégant. La chaleur arcanique se diffuse dans ses veines. (+40 mana)",
     });
   }
 
@@ -573,7 +574,7 @@ export default function CharacterSheet() {
     addLog({
       type: "narration",
       text:
-        "💥 Un impact. La douleur irradie — brève, réelle, humiliante. Élysia serre les dents. (−" +
+        "Un impact. La douleur irradie — brève, réelle, humiliante. Élysia serre les dents. (−" +
         n +
         " HP)",
     });
@@ -586,7 +587,7 @@ export default function CharacterSheet() {
     addLog({
       type: "narration",
       text:
-        "💚 Une chaleur douce parcourt le corps d'Élysia. Ses blessures se referment lentement, comme apaisées. (+" +
+        "Une chaleur douce parcourt le corps d'Élysia. Ses blessures se referment lentement, comme apaisées. (+" +
         n +
         " HP)",
     });
@@ -699,17 +700,9 @@ export default function CharacterSheet() {
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 14,
-          maxWidth: 760,
-          margin: "0 auto",
-        }}
-      >
-        {/* LEFT */}
-        <div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+        {/* LEFT - Personnage */}
+        <div className="space-y-4 order-2 lg:order-1">
           <Card title="⚔ Combat" accent={accentColor}>
             <StatBar
               value={char.hp}
@@ -723,66 +716,54 @@ export default function CharacterSheet() {
               color={isSombre ? "#8040c0" : "#6080e0"}
               label="💙 Mana"
             />
-            {/* <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-              {[
-                ["−15 HP", () => takeDmg(15), "#4a1010", "#c03030"],
-                ["+20 HP", () => heal(20), "#103010", "#30a040"],
-                ["🧪 Mana", drinkMana, "#10103a", "#4040c0"],
-              ].map(function (b) {
-                return (
-                  <button
-                    key={b[0]}
-                    onClick={b[1]}
-                    style={{
-                      background: b[2],
-                      border: "1px solid " + b[3],
-                      color: "#e8d5a3",
-                      padding: "5px 0",
-                      borderRadius: 4,
-                      cursor: "pointer",
-                      fontSize: 11,
-                      fontFamily: "inherit",
-                      flex: 1,
-                    }}
-                  >
-                    {b[0]}
-                  </button>
-                );
-              })}
-            </div> */}
           </Card>
 
           <Card title="📊 Statistiques" accent={accentColor}>
-            {Object.entries(char.stats).map(function (e) {
-              const stat = e[0];
-              const val = e[1];
-              const isKey =
-                stat.includes("Esprit") || stat.includes("Intelligence");
-              return (
-                <div
-                  key={stat}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 13,
-                    padding: "5px 0",
-                    borderBottom: "1px solid #1e1608",
-                  }}
-                >
-                  <span style={{ color: "#9a7040" }}>{stat}</span>
-                  <span
+            <div className="grid grid-cols-2 gap-x-6">
+              {Object.entries(char.stats).map(function (e) {
+                const stat = e[0];
+                const val = e[1];
+                const isKey =
+                  stat.includes("Esprit") || stat.includes("Intelligence");
+                return (
+                  <div
+                    key={stat}
                     style={{
-                      color: isKey
-                        ? isSombre
-                          ? "#c080e0"
-                          : "#f090b0"
-                        : "#e8d5a3",
-                      fontWeight: isKey ? "bold" : "normal",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 13,
+                      padding: "6px 0",
+                      borderBottom: "1px solid rgba(30, 22, 8, 0.5)",
                     }}
                   >
-                    {val}
-                  </span>
-                </div>
+                    <span style={{ color: "#9a7040" }}>{stat}</span>
+                    <span
+                      style={{
+                        color: isKey
+                          ? isSombre
+                            ? "#c080e0"
+                            : "#f090b0"
+                          : "#e8d5a3",
+                        fontWeight: isKey ? "bold" : "normal",
+                      }}
+                    >
+                      {val}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card title="✨ Sorts & Capacités" accent={accentColor}>
+            {char.spells.map(function (spell) {
+              return (
+                <SpellCard
+                  key={spell.name}
+                  spell={spell}
+                  onCast={castSpell}
+                  canCast={char.mana >= spell.cost}
+                />
               );
             })}
           </Card>
@@ -795,7 +776,6 @@ export default function CharacterSheet() {
                 "1px solid " + (char.weapon.eveille ? "#c0a020" : "#2a1e08"),
               borderRadius: 6,
               padding: 14,
-              marginBottom: 14,
               cursor: "pointer",
             }}
             onClick={() => setWeaponOpen(!weaponOpen)}
@@ -853,207 +833,170 @@ export default function CharacterSheet() {
             )}
           </div>
 
-          {/* Inventaire */}
-          <Card title="🎒 Inventaire" accent={accentColor}>
-            {char.inventory.map(function (item) {
-              return (
-                <div
-                  key={item.name}
-                  style={{
-                    padding: "5px 0",
-                    borderBottom: "1px solid #1e1608",
-                  }}
-                >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card title="🎒 Inventaire" accent={accentColor}>
+              {char.inventory.map(function (item) {
+                return (
                   <div
+                    key={item.name}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 12,
+                      padding: "5px 0",
+                      borderBottom: "1px solid rgba(30, 22, 8, 0.5)",
                     }}
                   >
-                    <span style={{ color: "#9a7040" }}>
-                      {item.name} <RangBadge rang={item.rang} />
-                    </span>
-                    <span>×{item.qty}</span>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: 12,
+                      }}
+                    >
+                      <span style={{ color: "#9a7040" }}>
+                        {item.name} <RangBadge rang={item.rang} />
+                      </span>
+                      <span>×{item.qty}</span>
+                    </div>
                   </div>
-                  <div style={{ fontSize: 10, color: "#4a3010", marginTop: 1 }}>
-                    {item.desc}
-                  </div>
-                </div>
-              );
-            })}
-          </Card>
-        </div>
+                );
+              })}
+            </Card>
 
-        {/* RIGHT */}
-        <div>
-          <Card title="✨ Sorts — cliquer pour détails" accent={accentColor}>
-            {char.spells.map(function (spell) {
-              return (
-                <SpellCard
-                  key={spell.name}
-                  spell={spell}
-                  onCast={castSpell}
-                  canCast={char.mana >= spell.cost}
-                />
-              );
-            })}
-          </Card>
-
-          {/* Statuts */}
-          <Card title="⚡ Effets Actifs" accent={accentColor}>
-            {char.status.length === 0 ? (
-              <div
-                style={{ fontSize: 12, color: "#4a3820", fontStyle: "italic" }}
-              >
-                Aucun effet actif
-              </div>
-            ) : (
-              char.status.map(function (s, i) {
+            <Card title="🎯 Quêtes" accent={accentColor}>
+              {char.quests.map(function (q, i) {
                 return (
                   <div
                     key={i}
-                    style={{ fontSize: 12, color: "#e0a020", padding: "3px 0" }}
+                    style={{
+                      padding: "6px 0",
+                    }}
                   >
-                    {s}
+                    <div style={{ fontSize: 12, color: "#c9b08a" }}>
+                      {q.titre}
+                    </div>
+                    <div style={{ fontSize: 10, color: "#4a7030", marginTop: 2 }}>
+                      ↳ {q.progression}
+                    </div>
                   </div>
                 );
-              })
-            )}
-          </Card>
+              })}
+            </Card>
+          </div>
+        </div>
 
-          {/* Quêtes */}
-          <Card title="🎯 Quêtes en Cours" accent={accentColor}>
-            {char.quests.map(function (q, i) {
-              return (
-                <div
-                  key={i}
-                  style={{
-                    padding: "6px 0",
-                    borderBottom: "1px solid #1e1608",
-                  }}
-                >
-                  <div style={{ fontSize: 12, color: "#c9b08a" }}>
-                    {q.titre}
-                  </div>
-                  <div style={{ fontSize: 10, color: "#6a4a20", marginTop: 2 }}>
-                    {q.desc}
-                  </div>
-                  <div style={{ fontSize: 10, color: "#4a7030", marginTop: 2 }}>
-                    ↳ {q.progression}
-                  </div>
-                </div>
-              );
-            })}
-          </Card>
-
-          {/* Journal */}
+        {/* RIGHT - Journal */}
+        <div className="flex flex-col h-[70vh] lg:h-[80vh] order-1 lg:order-2">
           <div
             style={{
               background: "#110e06",
               border: "1px solid " + accentColor,
-              borderRadius: 6,
-              padding: 14,
+              borderRadius: 8,
+              padding: 20,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
             }}
           >
             <div
               style={{
-                fontSize: 10,
+                fontSize: 11,
                 color: accentColor,
-                letterSpacing: 3,
+                letterSpacing: 4,
                 textTransform: "uppercase",
-                marginBottom: 12,
+                marginBottom: 20,
+                textAlign: 'center',
+                borderBottom: "1px solid rgba(192, 120, 32, 0.2)",
+                paddingBottom: 10
               }}
             >
               📜 Journal d'Aventure
             </div>
-            <div style={{ maxHeight: 400, overflowY: "auto", paddingRight: 4 }}>
-              {log.map(function (entry, i) {
-                return (
-                  <JournalEntry key={i} entry={entry} isLatest={i === 0} />
-                );
-              })}
-            </div>
-            <div
-              style={{
-                marginTop: 10,
-                paddingTop: 10,
-                borderTop: "1px solid #2a1e08",
-                fontSize: 10,
-                color: "#4a3010",
-                fontStyle: "italic",
-                textAlign: "center",
+            
+            <div 
+              style={{ 
+                flex: 1, 
+                overflowY: "auto", 
+                paddingRight: 10,
+                marginBottom: 20,
+                scrollBehavior: 'smooth'
               }}
             >
-              ✍️ Écris tes actions dans le champ ci-dessous · Lance tes sorts avec les
-              boutons
+              {log.map(function (entry, i) {
+                return (
+                  <JournalEntry key={i} entry={entry} isLatest={i === log.length - 1} />
+                );
+              })}
+              <div ref={logEndRef} />
+            </div>
+
+            {/* Input d'action intégré au journal */}
+            <div style={{
+              display: 'flex',
+              background: 'rgba(0,0,0,0.3)',
+              border: '1px solid ' + (isGenerating ? '#4a3010' : 'rgba(192, 120, 32, 0.4)'),
+              borderRadius: 8,
+              overflow: 'hidden',
+              minHeight: 50,
+              transition: 'all 0.3s ease'
+            }}>
+              <textarea
+                value={playerInput}
+                onChange={(e) => setPlayerInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendAction();
+                  }
+                }}
+                placeholder={isGenerating ? "L'oracle réfléchit..." : "Que fait Élysia ?..."}
+                disabled={isGenerating}
+                rows={1}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '12px 16px',
+                  color: isGenerating ? '#4a3820' : '#e8d5a3',
+                  fontFamily: 'inherit',
+                  fontSize: 14,
+                  outline: 'none',
+                  resize: 'none'
+                }}
+              />
+              <button
+                onClick={handleSendAction}
+                disabled={!playerInput.trim() || isGenerating}
+                style={{
+                  background: isGenerating ? 'transparent' : 'rgba(192, 120, 32, 0.1)',
+                  border: 'none',
+                  borderLeft: '1px solid rgba(192, 120, 32, 0.2)',
+                  color: (playerInput.trim() && !isGenerating) ? accentColor : '#4a3820',
+                  padding: '0 20px',
+                  cursor: (playerInput.trim() && !isGenerating) ? 'pointer' : 'not-allowed',
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  fontFamily: 'inherit',
+                  textTransform: 'uppercase',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isGenerating ? "..." : "Agir"}
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Input d'action du joueur */}
-      <div style={{ maxWidth: 760, margin: "14px auto 0" }}>
-        <div style={{
-          display: 'flex',
-          background: '#110e06',
-          border: '1px solid ' + (isGenerating ? '#4a3010' : accentColor),
-          borderRadius: 6,
-          overflow: 'hidden',
-          height: 42,
-          boxShadow: isGenerating ? 'none' : '0 0 15px ' + accentColor + '20',
-          transition: 'all 0.3s ease'
-        }}>
-          <input
-            type="text"
-            value={playerInput}
-            onChange={(e) => setPlayerInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendAction()}
-            placeholder={isGenerating ? "L'oracle réfléchit..." : "Décris ton action (ex: Je m'approche de la porte...)"}
-            disabled={isGenerating}
-            style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              padding: '0 16px',
-              color: isGenerating ? '#4a3820' : '#e8d5a3',
-              fontFamily: 'inherit',
-              fontSize: 13,
-              outline: 'none'
-            }}
-          />
-          <button
-            onClick={handleSendAction}
-            disabled={!playerInput.trim() || isGenerating}
-            style={{
-              background: isGenerating ? '#1a1208' : accentColor,
-              border: 'none',
-              borderLeft: '1px solid ' + (isGenerating ? '#4a3010' : accentColor),
-              color: isGenerating ? '#4a3820' : '#0d0a04',
-              padding: '0 24px',
-              cursor: (playerInput.trim() && !isGenerating) ? 'pointer' : 'not-allowed',
-              fontSize: 12,
-              fontWeight: 'bold',
-              fontFamily: 'inherit',
-              textTransform: 'uppercase',
-              letterSpacing: 1,
-              transition: 'all 0.2s'
-            }}
-          >
-            {isGenerating ? "..." : "Envoyer"}
-          </button>
-        </div>
-      </div>
-
       {/* Origine — repliée */}
-      <div style={{ maxWidth: 760, margin: "14px auto 0" }}>
+      <div style={{ maxWidth: "6xl", margin: "24px auto 0" }} className="max-w-6xl">
         <Card title="📖 Origine — [Confidentiel]" accent="#4a3010">
           <div
             style={{
               fontSize: 11,
-              color: "#5a3a18",
+              color: "#5a4020",
               fontStyle: "italic",
               lineHeight: 1.8,
+              opacity: 0.6
             }}
           >
             {char.backstory}
