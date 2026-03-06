@@ -3,24 +3,6 @@ import { useState, useRef, useEffect } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
-const SPELL_NARRATIVES = {
-  "Éclat Rosé": [
-    "Élysia lève la paume, ses cheveux roses frémissant sous une brise invisible. Un éclat de lumière rose transperce l'air comme une lame de verre — et disparaît dans un silence presque doux.",
-    "Ses yeux bleus se plissent. Elle souffle, et un projectile de lumière nacrée file vers sa cible avec la grâce mortelle d'un pétale tranchant.",
-    "Un sourire. Juste un sourire — puis l'éclat jaillit, rose et impitoyable, laissant derrière lui une traînée lumineuse qui s'efface comme un rêve.",
-  ],
-  "Voile de Sérénité": [
-    "Élysia ferme les yeux un instant. Autour d'elle, l'air se densifie en un voile translucide rosé, doux comme de la soie, dur comme de l'acier arcanique.",
-    "Elle murmure quelque chose d'inaudible. Un bouclier de lumière douce se matérialise, épousant ses contours comme une seconde peau lumineuse.",
-    "Ses mains s'ouvrent lentement. Le voile naît entre elle et le danger — silencieux, presque tendre, mais absolument impénétrable pour quelques instants.",
-  ],
-  "Murmure des Abysses": [
-    "Sa facette sombre affleure. Ses yeux se teintent d'une lueur violacée inquiétante, et elle souffle un mot ancien — les ombres autour d'elle se tordent et fondent sur la cible.",
-    "Un frisson parcourt son aura. Ce n'est plus Élysia qui parle — c'est quelque chose d'autre, de plus vieux, de plus froid. L'obscurité obéit.",
-    "Elle incline légèrement la tête, un sourire absent sur les lèvres. Les ombres rampent, s'enroulent, étouffent — et elle regarde, impassible.",
-  ],
-};
-
 const INITIAL_LOG = [
   {
     type: "system",
@@ -131,24 +113,6 @@ const INITIAL_CHAR = {
   backstory:
     "Élysia ignore presque tout de ses origines. Sa mère — une femme douce et secrète — est morte quand elle avait 6 ans, lui laissant un médaillon et des silences. Ce que personne ne sait encore : Élysia est la réincarnation fragmentée d'une Archimage oubliée, la fondatrice disparue de l'Académie des Voiles Éternelles elle-même. Son âme s'est brisée en deux lors d'un sacrifice ancien — une facette lumineuse, une facette sombre — et s'est réincarnée des siècles plus tard dans ce corps de 17 ans. L'Académie qu'elle croit découvrir... elle l'a peut-être construite.",
 };
-
-const OUTPUT_FORMAT = `
-  Retourne *exactement* un objet JSON (et rien d'autre) conforme à ce schema :
-  {
-    "story": "<texte: la suite narrative (3-6 phrases)>",
-    "actions": [
-      {
-        "actionType": "modify_stats",
-        "playerId": "<uuid ou vide pour player courant>",
-        "deltas": { "hp": -10, "xp": 50, "gold": 0 },
-        "reason": "court texte expliquant pourquoi"
-      }
-    ],
-    "events": [
-      { "type":"string","description":"string","important": true|false }
-    ]
-  }
-`;
 
 const generateSpellText = async (char, log, spell) => {
   const prompt = `
@@ -802,6 +766,30 @@ export default function CharacterSheet() {
               <div ref={logEndRef} />
             </div>
 
+            {/* Bouton Continuer séparé */}
+            <button
+              onClick={handleContinueStory}
+              disabled={isGenerating}
+              style={{
+                width: '100%',
+                padding: '10px',
+                marginBottom: 12,
+                background: 'rgba(192, 120, 32, 0.05)',
+                border: '1px dashed rgba(192, 120, 32, 0.3)',
+                borderRadius: 8,
+                color: isGenerating ? '#4a3820' : '#c9b08a',
+                cursor: isGenerating ? 'not-allowed' : 'pointer',
+                fontSize: 11,
+                fontWeight: 'bold',
+                fontFamily: 'inherit',
+                textTransform: 'uppercase',
+                transition: 'all 0.2s',
+                opacity: 0.8
+              }}
+            >
+              {isGenerating ? "L'oracle travaille..." : "✨ Continuer l'histoire"}
+            </button>
+
             {/* Input d'action intégré au journal */}
             <div style={{
               display: 'flex',
@@ -836,26 +824,6 @@ export default function CharacterSheet() {
                   resize: 'none'
                 }}
               />
-              <button
-                onClick={handleContinueStory}
-                disabled={isGenerating}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderLeft: '1px solid rgba(192, 120, 32, 0.2)',
-                  color: isGenerating ? '#4a3820' : '#c9b08a',
-                  padding: '0 15px',
-                  cursor: isGenerating ? 'not-allowed' : 'pointer',
-                  fontSize: 11,
-                  fontWeight: 'bold',
-                  fontFamily: 'inherit',
-                  textTransform: 'uppercase',
-                  opacity: 0.8,
-                  transition: 'all 0.2s'
-                }}
-              >
-                {isGenerating ? "..." : "Continuer"}
-              </button>
               <button
                 onClick={handleSendAction}
                 disabled={!playerInput.trim() || isGenerating}
