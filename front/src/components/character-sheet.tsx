@@ -23,12 +23,12 @@ const SPELL_NARRATIVES = {
 
 const INITIAL_LOG = [
   {
-    type: "narration",
-    text: "La calèche s'immobilise dans un craquement de bois et de cuir. Par la vitre poussiéreuse, les flèches de pierre grise de l'Académie des Voiles Éternelles percent le ciel plombé comme des aiguilles plantées dans un nuage. Élysia observe les bâtiments en silence — hauts, solennels, indifférents. L'odeur de pluie froide et de pierre mouillée filtre par l'interstice de la portière. Autour d'elle, d'autres élèves descendent des calèches voisines, serrant leurs bagages contre eux, les yeux écarquillés ou les mâchoires crispées. Personne ne lui adresse la parole. Personne ne semble remarquer l'imperceptible vacillement de son aura... pour l'instant.",
-  },
-  {
     type: "system",
     text: "⚙️ SYSTÈME — Bienvenue à l'Académie des Voiles Éternelles. Ton arme liée sommeille. Ton héritage est scellé. L'histoire commence maintenant.",
+  },
+  {
+    type: "narration",
+    text: "La calèche s'immobilise dans un craquement de bois et de cuir. Par la vitre poussiéreuse, les flèches de pierre grise de l'Académie des Voiles Éternelles percent le ciel plombé comme des aiguilles plantées dans un nuage. Élysia observe les bâtiments en silence — hauts, solennels, indifférents. L'odeur de pluie froide et de pierre mouillée filtre par l'interstice de la portière. Autour d'elle, d'autres élèves descendent des calèches voisines, serrant leurs bagages contre eux, les yeux écarquillés ou les mâchoires crispées. Personne ne lui adresse la parole. Personne ne semble remarquer l'imperceptible vacillement de son aura... pour l'instant.",
   },
 ];
 
@@ -181,7 +181,7 @@ const generateActionText = async (char, log, action) => {
   PERSONNAGE : ${char.name}, Facette : ${char.facette}.
   
   DERNIERS ÉVÉNEMENTS DU JOURNAL :
-  ${log.slice(0, 3).map((e) => e.text).join("\n")}
+  ${log.slice(-3).map((e) => e.text).join("\n")}
 
   ACTION DU JOUEUR : "${action}"
 
@@ -196,6 +196,29 @@ const generateActionText = async (char, log, action) => {
   } catch (error) {
     console.error("Action AI failed:", error);
     return { story: "Le monde semble attendre ton prochain mouvement en silence." };
+  }
+};
+
+const generateContinueStory = async (char, log) => {
+  const prompt = `
+  CONTEXTE : RPG à l'Académie des Voiles Éternelles.
+  PERSONNAGE : ${char.name}, Facette : ${char.facette}.
+  
+  DERNIERS ÉVÉNEMENTS DU JOURNAL :
+  ${log.slice(-3).map((e) => e.text).join("\n")}
+
+  CONSIGNE : Le joueur demande de continuer l'histoire sans action spécifique. 
+  Décris la progression naturelle de la scène (3-5 phrases). 
+  Introduis un petit événement, un changement d'ambiance, ou l'intervention d'un PNJ pour relancer l'intrigue.
+  Le ton doit être immersif et mystérieux.
+`;
+
+  try {
+    const res = await axios.post(`${API_URL}/ai/generate`, { prompt });
+    return res.data.text;
+  } catch (error) {
+    console.error("Continue AI failed:", error);
+    return { story: "Un silence pesant s'installe, comme si le temps lui-même hésitait à s'écouler." };
   }
 };
 
@@ -496,6 +519,20 @@ export default function CharacterSheet() {
       addLog({ type: "narration", text: res.story });
     } catch (error) {
       console.error("Action failed:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  async function handleContinueStory() {
+    if (isGenerating) return;
+    setIsGenerating(true);
+
+    try {
+      const res = await generateContinueStory(char, log);
+      addLog({ type: "narration", text: res.story });
+    } catch (error) {
+      console.error("Continue failed:", error);
     } finally {
       setIsGenerating(false);
     }
@@ -963,6 +1000,26 @@ export default function CharacterSheet() {
                   resize: 'none'
                 }}
               />
+              <button
+                onClick={handleContinueStory}
+                disabled={isGenerating}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderLeft: '1px solid rgba(192, 120, 32, 0.2)',
+                  color: isGenerating ? '#4a3820' : '#c9b08a',
+                  padding: '0 15px',
+                  cursor: isGenerating ? 'not-allowed' : 'pointer',
+                  fontSize: 11,
+                  fontWeight: 'bold',
+                  fontFamily: 'inherit',
+                  textTransform: 'uppercase',
+                  opacity: 0.8,
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isGenerating ? "..." : "Continuer"}
+              </button>
               <button
                 onClick={handleSendAction}
                 disabled={!playerInput.trim() || isGenerating}
