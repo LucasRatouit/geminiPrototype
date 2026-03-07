@@ -467,12 +467,131 @@ function JournalEntry({ entry, isLatest }) {
   );
 }
 
+function LevelUpModal({ stats, onIncrease, points }) {
+  if (points <= 0) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        background: "rgba(0, 0, 0, 0.85)",
+        backdropFilter: "blur(8px)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 1000,
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          background: "#0d0a04",
+          border: "2px solid #c07820",
+          borderRadius: 12,
+          padding: 30,
+          maxWidth: 450,
+          width: "100%",
+          boxShadow: "0 0 50px rgba(192, 120, 32, 0.3)",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 10,
+            letterSpacing: 5,
+            color: "#c07820",
+            textTransform: "uppercase",
+            marginBottom: 10,
+          }}
+        >
+          ✦ Ascension d'Aura ✦
+        </div>
+        <div
+          style={{
+            fontSize: 24,
+            fontWeight: "bold",
+            color: "#f0c0d0",
+            marginBottom: 5,
+          }}
+        >
+          Niveau Supérieur !
+        </div>
+        <p
+          style={{
+            fontSize: 13,
+            color: "#a08050",
+            fontStyle: "italic",
+            marginBottom: 25,
+          }}
+        >
+          Votre lien avec l'éther se renforce. Choisissez une caractéristique à
+          affiner ({points} point{points > 1 ? "s" : ""} disponible{points > 1 ? "s" : ""}).
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {Object.entries(stats).map(([name, val]) => (
+            <button
+              key={name}
+              onClick={() => onIncrease(name)}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "12px 20px",
+                background: "rgba(192, 120, 32, 0.05)",
+                border: "1px solid rgba(192, 120, 32, 0.2)",
+                borderRadius: 8,
+                color: "#e8d5a3",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                fontFamily: "inherit",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(192, 120, 32, 0.15)";
+                e.currentTarget.style.borderColor = "rgba(192, 120, 32, 0.5)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(192, 120, 32, 0.05)";
+                e.currentTarget.style.borderColor = "rgba(192, 120, 32, 0.2)";
+              }}
+            >
+              <span style={{ fontSize: 14 }}>{name}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ color: "#c07820", fontWeight: "bold" }}>
+                  {val as number}
+                </span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    background: "#c07820",
+                    color: "#0d0a04",
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                    fontWeight: "bold",
+                  }}
+                >
+                  +1
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CharacterSheet() {
   const [char, setChar] = useState(INITIAL_CHAR);
   const [log, setLog] = useState(INITIAL_LOG);
   const [weaponOpen, setWeaponOpen] = useState(false);
   const [playerInput, setPlayerInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [pendingStatPoints, setPendingStatPoints] = useState(0);
   const logEndRef = useRef(null);
   const prevLevelRef = useRef(char.level);
 
@@ -484,13 +603,31 @@ export default function CharacterSheet() {
 
   useEffect(() => {
     if (char.level > prevLevelRef.current) {
+      const levelsGained = char.level - prevLevelRef.current;
       addLog({
         type: "system",
         text: `🎊 NIVEAU SUPÉRIEUR ! Élysia atteint le niveau ${char.level}. Son aura s'intensifie.`,
       });
+      setPendingStatPoints((prev) => prev + levelsGained);
     }
     prevLevelRef.current = char.level;
   }, [char.level]);
+
+  function handleStatIncrease(statName) {
+    if (pendingStatPoints <= 0) return;
+
+    setChar((prev) => {
+      const newStats = Object.assign({}, prev.stats);
+      newStats[statName] = newStats[statName] + 1;
+      return Object.assign({}, prev, { stats: newStats });
+    });
+    setPendingStatPoints((prev) => prev - 1);
+    
+    addLog({
+      type: "system",
+      text: `📈 AMÉLIORATION — La stat ${statName} augmente de +1.`,
+    });
+  }
 
   function addLog(entry) {
     setLog(function (prev) {
@@ -1114,6 +1251,13 @@ export default function CharacterSheet() {
           </div>
         </Card>
       </div>
+
+      {/* Modal de montée de niveau */}
+      <LevelUpModal
+        stats={char.stats}
+        points={pendingStatPoints}
+        onIncrease={handleStatIncrease}
+      />
     </div>
   );
 }
