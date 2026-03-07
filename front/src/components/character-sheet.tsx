@@ -20,7 +20,7 @@ const INITIAL_CHAR = {
   classe: "Héritière Scellée",
   rang: "F",
   level: 1,
-  xp: 90,
+  xp: 0,
   xpNext: 100,
   hp: 75,
   hpMax: 75,
@@ -529,7 +529,8 @@ function LevelUpModal({ stats, onIncrease, points }) {
           }}
         >
           Votre lien avec l'éther se renforce. Choisissez une caractéristique à
-          affiner ({points} point{points > 1 ? "s" : ""} disponible{points > 1 ? "s" : ""}).
+          affiner ({points} point{points > 1 ? "s" : ""} disponible
+          {points > 1 ? "s" : ""}).
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -622,7 +623,7 @@ export default function CharacterSheet() {
       return Object.assign({}, prev, { stats: newStats });
     });
     setPendingStatPoints((prev) => prev - 1);
-    
+
     addLog({
       type: "system",
       text: `📈 AMÉLIORATION — La stat ${statName} augmente de +1.`,
