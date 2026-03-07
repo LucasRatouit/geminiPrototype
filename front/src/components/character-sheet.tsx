@@ -20,7 +20,7 @@ const INITIAL_CHAR = {
   classe: "Héritière Scellée",
   rang: "F",
   level: 1,
-  xp: 0,
+  xp: 90,
   xpNext: 100,
   hp: 75,
   hpMax: 75,
@@ -120,7 +120,10 @@ const generateSpellText = async (char, log, spell) => {
   PERSONNAGE : ${char.name} (${char.classe}), Facette : ${char.facette}.
   
   DERNIERS ÉVÉNEMENTS :
-  ${log.slice(0, 2).map((e) => e.text).join("\n")}
+  ${log
+    .slice(0, 2)
+    .map((e) => e.text)
+    .join("\n")}
 
   ACTION : Lancer le sort "${spell.name}".
   DESCRIPTION DU SORT : ${spell.description}
@@ -145,7 +148,10 @@ const generateActionText = async (char, log, action) => {
   PERSONNAGE : ${char.name}, Facette : ${char.facette}.
   
   DERNIERS ÉVÉNEMENTS DU JOURNAL :
-  ${log.slice(-3).map((e) => e.text).join("\n")}
+  ${log
+    .slice(-3)
+    .map((e) => e.text)
+    .join("\n")}
 
   ACTION DU JOUEUR : "${action}"
 
@@ -159,7 +165,9 @@ const generateActionText = async (char, log, action) => {
     return res.data.text;
   } catch (error) {
     console.error("Action AI failed:", error);
-    return { story: "Le monde semble attendre ton prochain mouvement en silence." };
+    return {
+      story: "Le monde semble attendre ton prochain mouvement en silence.",
+    };
   }
 };
 
@@ -169,7 +177,10 @@ const generateContinueStory = async (char, log) => {
   PERSONNAGE : ${char.name}, Facette : ${char.facette}.
   
   DERNIERS ÉVÉNEMENTS DU JOURNAL :
-  ${log.slice(-3).map((e) => e.text).join("\n")}
+  ${log
+    .slice(-3)
+    .map((e) => e.text)
+    .join("\n")}
 
   CONSIGNE : Le joueur demande de continuer l'histoire sans action spécifique. 
   Décris la progression naturelle de la scène (3-5 phrases). 
@@ -182,7 +193,10 @@ const generateContinueStory = async (char, log) => {
     return res.data.text;
   } catch (error) {
     console.error("Continue AI failed:", error);
-    return { story: "Un silence pesant s'installe, comme si le temps lui-même hésitait à s'écouler." };
+    return {
+      story:
+        "Un silence pesant s'installe, comme si le temps lui-même hésitait à s'écouler.",
+    };
   }
 };
 
@@ -423,13 +437,13 @@ function JournalEntry({ entry, isLatest }) {
         padding: "12px 16px",
         marginBottom: 12,
         borderRadius: 8,
-        background: isSystem 
-          ? "rgba(13, 20, 30, 0.4)" 
-          : isAction 
-            ? "rgba(15, 25, 10, 0.4)" 
+        background: isSystem
+          ? "rgba(13, 20, 30, 0.4)"
+          : isAction
+            ? "rgba(15, 25, 10, 0.4)"
             : "transparent",
-        borderLeft: isLatest 
-          ? `3px solid ${isSystem ? "#6090c0" : isAction ? "#90c060" : "#c07820"}` 
+        borderLeft: isLatest
+          ? `3px solid ${isSystem ? "#6090c0" : isAction ? "#90c060" : "#c07820"}`
           : "1px solid rgba(232, 213, 163, 0.1)",
         fontSize: 14,
         lineHeight: 1.7,
@@ -438,11 +452,16 @@ function JournalEntry({ entry, isLatest }) {
         opacity: isLatest ? 1 : 0.7,
         transition: "all 0.5s ease",
         transform: isLatest ? "translateX(0)" : "translateX(0)",
-        boxShadow: isLatest && !isNarration ? `0 0 15px rgba(0,0,0,0.3)` : "none"
+        boxShadow:
+          isLatest && !isNarration ? `0 0 15px rgba(0,0,0,0.3)` : "none",
       }}
     >
-      {isSystem && <span style={{ marginRight: 8, fontSize: 10 }}>[SYSTEM]</span>}
-      {isAction && <span style={{ marginRight: 8, fontSize: 10 }}>[ACTION]</span>}
+      {isSystem && (
+        <span style={{ marginRight: 8, fontSize: 10 }}>[SYSTEM]</span>
+      )}
+      {isAction && (
+        <span style={{ marginRight: 8, fontSize: 10 }}>[ACTION]</span>
+      )}
       {entry.text}
     </div>
   );
@@ -455,12 +474,23 @@ export default function CharacterSheet() {
   const [playerInput, setPlayerInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const logEndRef = useRef(null);
+  const prevLevelRef = useRef(char.level);
 
   useEffect(() => {
     if (logEndRef.current) {
       logEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [log]);
+
+  useEffect(() => {
+    if (char.level > prevLevelRef.current) {
+      addLog({
+        type: "system",
+        text: `🎊 NIVEAU SUPÉRIEUR ! Élysia atteint le niveau ${char.level}. Son aura s'intensifie.`,
+      });
+    }
+    prevLevelRef.current = char.level;
+  }, [char.level]);
 
   function addLog(entry) {
     setLog(function (prev) {
@@ -470,42 +500,31 @@ export default function CharacterSheet() {
 
   function updateXP(gain) {
     if (!gain || gain <= 0) return;
-    
+
+    addLog({ type: "system", text: `✨ Gain d'expérience : +${gain} XP` });
+
     setChar(function (prev) {
       let newXp = prev.xp + gain;
       let newLevel = prev.level;
       let newXpNext = prev.xpNext;
-      let leveledUp = false;
 
       while (newXp >= newXpNext) {
         newXp -= newXpNext;
         newLevel++;
         newXpNext = Math.floor(newXpNext * 1.2);
-        leveledUp = true;
-      }
-
-      if (leveledUp) {
-        setTimeout(() => {
-          addLog({ 
-            type: "system", 
-            text: `🎊 NIVEAU SUPÉRIEUR ! Élysia atteint le niveau ${newLevel}. Son aura s'intensifie.` 
-          });
-        }, 100);
       }
 
       return Object.assign({}, prev, {
         xp: newXp,
         level: newLevel,
-        xpNext: newXpNext
+        xpNext: newXpNext,
       });
     });
-    
-    addLog({ type: "system", text: `✨ Gain d'expérience : +${gain} XP` });
   }
 
   async function handleSendAction() {
     if (!playerInput.trim() || isGenerating) return;
-    
+
     const actionText = playerInput.trim();
     setPlayerInput("");
     setIsGenerating(true);
@@ -551,7 +570,7 @@ export default function CharacterSheet() {
       }
       return;
     }
-    
+
     setIsGenerating(true);
     const isDark = spell.element.includes("Ombre");
     setChar(function (c) {
@@ -765,10 +784,10 @@ export default function CharacterSheet() {
               border: "1px solid " + accentColor,
               borderRadius: 8,
               padding: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100%',
-              boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
             }}
           >
             <div
@@ -778,26 +797,30 @@ export default function CharacterSheet() {
                 letterSpacing: 4,
                 textTransform: "uppercase",
                 marginBottom: 20,
-                textAlign: 'center',
+                textAlign: "center",
                 borderBottom: "1px solid rgba(192, 120, 32, 0.2)",
-                paddingBottom: 10
+                paddingBottom: 10,
               }}
             >
               📜 Journal d'Aventure
             </div>
-            
-            <div 
-              style={{ 
-                flex: 1, 
-                overflowY: "auto", 
+
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
                 paddingRight: 10,
                 marginBottom: 20,
-                scrollBehavior: 'smooth'
+                scrollBehavior: "smooth",
               }}
             >
               {log.map(function (entry, i) {
                 return (
-                  <JournalEntry key={i} entry={entry} isLatest={i === log.length - 1} />
+                  <JournalEntry
+                    key={i}
+                    entry={entry}
+                    isLatest={i === log.length - 1}
+                  />
                 );
               })}
               <div ref={logEndRef} />
@@ -808,74 +831,92 @@ export default function CharacterSheet() {
               onClick={handleContinueStory}
               disabled={isGenerating}
               style={{
-                width: '100%',
-                padding: '10px',
+                width: "100%",
+                padding: "10px",
                 marginBottom: 12,
-                background: 'rgba(192, 120, 32, 0.05)',
-                border: '1px dashed rgba(192, 120, 32, 0.3)',
+                background: "rgba(192, 120, 32, 0.05)",
+                border: "1px dashed rgba(192, 120, 32, 0.3)",
                 borderRadius: 8,
-                color: isGenerating ? '#4a3820' : '#c9b08a',
-                cursor: isGenerating ? 'not-allowed' : 'pointer',
+                color: isGenerating ? "#4a3820" : "#c9b08a",
+                cursor: isGenerating ? "not-allowed" : "pointer",
                 fontSize: 11,
-                fontWeight: 'bold',
-                fontFamily: 'inherit',
-                textTransform: 'uppercase',
-                transition: 'all 0.2s',
-                opacity: 0.8
+                fontWeight: "bold",
+                fontFamily: "inherit",
+                textTransform: "uppercase",
+                transition: "all 0.2s",
+                opacity: 0.8,
               }}
             >
-              {isGenerating ? "L'oracle travaille..." : "✨ Continuer l'histoire"}
+              {isGenerating
+                ? "L'oracle travaille..."
+                : "✨ Continuer l'histoire"}
             </button>
 
             {/* Input d'action intégré au journal */}
-            <div style={{
-              display: 'flex',
-              background: 'rgba(0,0,0,0.3)',
-              border: '1px solid ' + (isGenerating ? '#4a3010' : 'rgba(192, 120, 32, 0.4)'),
-              borderRadius: 8,
-              overflow: 'hidden',
-              minHeight: 50,
-              transition: 'all 0.3s ease'
-            }}>
+            <div
+              style={{
+                display: "flex",
+                background: "rgba(0,0,0,0.3)",
+                border:
+                  "1px solid " +
+                  (isGenerating ? "#4a3010" : "rgba(192, 120, 32, 0.4)"),
+                borderRadius: 8,
+                overflow: "hidden",
+                minHeight: 50,
+                transition: "all 0.3s ease",
+              }}
+            >
               <textarea
                 value={playerInput}
                 onChange={(e) => setPlayerInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSendAction();
                   }
                 }}
-                placeholder={isGenerating ? "L'oracle réfléchit..." : "Que fait Élysia ?..."}
+                placeholder={
+                  isGenerating
+                    ? "L'oracle réfléchit..."
+                    : "Que fait Élysia ?..."
+                }
                 disabled={isGenerating}
                 rows={1}
                 style={{
                   flex: 1,
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '12px 16px',
-                  color: isGenerating ? '#4a3820' : '#e8d5a3',
-                  fontFamily: 'inherit',
+                  background: "transparent",
+                  border: "none",
+                  padding: "12px 16px",
+                  color: isGenerating ? "#4a3820" : "#e8d5a3",
+                  fontFamily: "inherit",
                   fontSize: 14,
-                  outline: 'none',
-                  resize: 'none'
+                  outline: "none",
+                  resize: "none",
                 }}
               />
               <button
                 onClick={handleSendAction}
                 disabled={!playerInput.trim() || isGenerating}
                 style={{
-                  background: isGenerating ? 'transparent' : 'rgba(192, 120, 32, 0.1)',
-                  border: 'none',
-                  borderLeft: '1px solid rgba(192, 120, 32, 0.2)',
-                  color: (playerInput.trim() && !isGenerating) ? accentColor : '#4a3820',
-                  padding: '0 20px',
-                  cursor: (playerInput.trim() && !isGenerating) ? 'pointer' : 'not-allowed',
+                  background: isGenerating
+                    ? "transparent"
+                    : "rgba(192, 120, 32, 0.1)",
+                  border: "none",
+                  borderLeft: "1px solid rgba(192, 120, 32, 0.2)",
+                  color:
+                    playerInput.trim() && !isGenerating
+                      ? accentColor
+                      : "#4a3820",
+                  padding: "0 20px",
+                  cursor:
+                    playerInput.trim() && !isGenerating
+                      ? "pointer"
+                      : "not-allowed",
                   fontSize: 12,
-                  fontWeight: 'bold',
-                  fontFamily: 'inherit',
-                  textTransform: 'uppercase',
-                  transition: 'all 0.2s'
+                  fontWeight: "bold",
+                  fontFamily: "inherit",
+                  textTransform: "uppercase",
+                  transition: "all 0.2s",
                 }}
               >
                 {isGenerating ? "..." : "Agir"}
@@ -1041,7 +1082,9 @@ export default function CharacterSheet() {
                     <div style={{ fontSize: 12, color: "#c9b08a" }}>
                       {q.titre}
                     </div>
-                    <div style={{ fontSize: 10, color: "#4a7030", marginTop: 2 }}>
+                    <div
+                      style={{ fontSize: 10, color: "#4a7030", marginTop: 2 }}
+                    >
                       ↳ {q.progression}
                     </div>
                   </div>
@@ -1053,7 +1096,10 @@ export default function CharacterSheet() {
       </div>
 
       {/* Origine — repliée */}
-      <div style={{ maxWidth: "6xl", margin: "24px auto 0" }} className="max-w-6xl">
+      <div
+        style={{ maxWidth: "6xl", margin: "24px auto 0" }}
+        className="max-w-6xl"
+      >
         <Card title="📖 Origine — [Confidentiel]" accent="#4a3010">
           <div
             style={{
@@ -1061,7 +1107,7 @@ export default function CharacterSheet() {
               color: "#5a4020",
               fontStyle: "italic",
               lineHeight: 1.8,
-              opacity: 0.6
+              opacity: 0.6,
             }}
           >
             {char.backstory}
