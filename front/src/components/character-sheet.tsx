@@ -468,6 +468,41 @@ export default function CharacterSheet() {
     });
   }
 
+  function updateXP(gain) {
+    if (!gain || gain <= 0) return;
+    
+    setChar(function (prev) {
+      let newXp = prev.xp + gain;
+      let newLevel = prev.level;
+      let newXpNext = prev.xpNext;
+      let leveledUp = false;
+
+      while (newXp >= newXpNext) {
+        newXp -= newXpNext;
+        newLevel++;
+        newXpNext = Math.floor(newXpNext * 1.2);
+        leveledUp = true;
+      }
+
+      if (leveledUp) {
+        setTimeout(() => {
+          addLog({ 
+            type: "system", 
+            text: `🎊 NIVEAU SUPÉRIEUR ! Élysia atteint le niveau ${newLevel}. Son aura s'intensifie.` 
+          });
+        }, 100);
+      }
+
+      return Object.assign({}, prev, {
+        xp: newXp,
+        level: newLevel,
+        xpNext: newXpNext
+      });
+    });
+    
+    addLog({ type: "system", text: `✨ Gain d'expérience : +${gain} XP` });
+  }
+
   async function handleSendAction() {
     if (!playerInput.trim() || isGenerating) return;
     
@@ -475,12 +510,12 @@ export default function CharacterSheet() {
     setPlayerInput("");
     setIsGenerating(true);
 
-    // Ajouter l'action du joueur au log
     addLog({ type: "action", text: actionText });
 
     try {
       const res = await generateActionText(char, log, actionText);
       addLog({ type: "narration", text: res.story });
+      if (res.xp) updateXP(res.xp);
     } catch (error) {
       console.error("Action failed:", error);
     } finally {
@@ -495,6 +530,7 @@ export default function CharacterSheet() {
     try {
       const res = await generateContinueStory(char, log);
       addLog({ type: "narration", text: res.story });
+      if (res.xp) updateXP(res.xp);
     } catch (error) {
       console.error("Continue failed:", error);
     } finally {
@@ -534,6 +570,7 @@ export default function CharacterSheet() {
     try {
       const res = await generateSpellText(char, log, spell);
       addLog({ type: "narration", text: "✨ " + res.story });
+      if (res.xp) updateXP(res.xp);
     } catch (error) {
       console.error("Spell failed:", error);
     } finally {

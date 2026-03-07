@@ -14,8 +14,14 @@ export async function generateText(prompt) {
     3. Le JSON doit suivre ce format exact :
     {
       "story": "Texte narratif ici. Utilise \\n pour les sauts de ligne.",
-      "actions": []
+      "actions": [],
+      "xp": 0
     }
+
+    LOGIQUE D'EXPÉRIENCE (XP) :
+    - Attribue des XP (champ "xp") uniquement si le joueur réalise une action significative : victoire en combat, découverte d'un secret, résolution d'un puzzle ou utilisation créative de ses sorts.
+    - Si l'action est triviale ou purement narrative sans effort particulier, "xp" doit être égal à 0.
+    - Échelle suggérée : 5-15 XP pour une action mineure, 20-50 XP pour un accomplissement majeur.
   `;
 
   try {
@@ -41,7 +47,8 @@ export async function generateText(prompt) {
     // En cas d'erreur, on renvoie un objet valide par défaut pour ne pas casser le front
     return {
       story: "Une perturbation magique empêche la vision de se former correctement... (Erreur de l'oracle)",
-      actions: []
+      actions: [],
+      xp: 0
     };
   }
 }
