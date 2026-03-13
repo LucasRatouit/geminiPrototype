@@ -456,9 +456,51 @@ export default function ElysiaChronicles() {
     return {cl:cleanRaw(raw),ns,ni,ne,nq,nsp,tn};
   },[assignColor]);
 
-  const callAI = async(messages)=>{
-    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:3000,system:SYSTEM_PROMPT,messages})});
-    const d=await r.json(); return d.content?.map(b=>b.text||"").join("")||"";
+  const callAI = async (messages) => {
+    // On construit un prompt global incluant le système et l'historique récent pour le contexte
+    const prompt = `
+  SYSTÈME : ${SYSTEM_PROMPT}
+
+  HISTORIQUE DES ÉCHANGES :
+  ${messages
+    .slice(-6) // On prend les 6 derniers messages pour le contexte
+    .map((m) => `${m.role === "user" ? "JOUEUR" : "GRIMOIRE"}: ${m.content}`)
+    .join("\n")}
+
+  DERNIÈRE INSTRUCTION : 
+  ${messages[messages.length - 1].content}
+
+  CONSIGNE : Génère la suite de l'histoire en respectant les balises [HUD_START], [NPC_START], [THEME], etc. définies dans le système.
+  Réponds UNIQUEMENT par un objet JSON avec les champs "story", "actions", et "xp".
+  La narration complète (incluant les balises HUD) doit être dans le champ "story".
+  `;
+
+    try {
+      const response = await axios.post(`${API_URL}/ai/generate`, { prompt });
+      
+      // Le backend renvoie { text: { story, actions, xp } }
+      const data = response.data.text;
+      
+      let finalContent = "";
+      let xpBonus = 0;
+
+      if (typeof data === "object" && data !== null) {
+        finalContent = data.story || "";
+        xpBonus = data.xp || 0;
+        
+        // Si on a reçu de l'XP, on l'injecte sous forme de balise pour que le parser front la détecte
+        if (xpBonus > 0 && !finalContent.includes("[QUETE_TERMINEE")) {
+           finalContent += `\n[QUETE_TERMINEE:Exploit narratif|${xpBonus}]`;
+        }
+      } else {
+        finalContent = typeof data === "string" ? data : JSON.stringify(data);
+      }
+
+      return finalContent;
+    } catch (error) {
+      console.error("Erreur lors de l'appel au backend:", error);
+      return "[ERREUR MAGIQUE] Le lien avec le grimoire est rompu. Vérifiez que le serveur est lancé.";
+    }
   };
 
   const processAI = async (userMsg, aiPrompt) => {
