@@ -1,4 +1,6 @@
 import React from "react";
+import { Maximize2, Minimize2, RotateCcw, Sparkles } from "lucide-react";
+import { cn } from "../lib/utils";
 
 export interface NavbarStats {
   rank: string;
@@ -43,11 +45,16 @@ export const DEFAULT_STATS: NavbarStats = {
 };
 
 export const DEFAULT_THEME: NavbarTheme = {
-  accent: "#a87c4f",
-  glow: "#c4933a",
-  hb: "rgba(168,124,79,.28)",
-  tb: "rgba(168,124,79,.13)",
+  accent: "var(--primary)",
+  glow: "var(--ring)",
+  hb: "var(--border)",
+  tb: "var(--border)",
   name: "Académie",
+};
+
+const RANK_COLORS: Record<string, string> = {
+  F: "#9ca3af", E: "#86efac", D: "#67e8f9", C: "#93c5fd", B: "#c4b5fd",
+  A: "#fde68a", S: "#fb923c", SS: "#f87171", SSS: "#e879f9", DIVIN: "#fef9c3",
 };
 
 interface NavbarProps {
@@ -63,56 +70,30 @@ interface NavbarProps {
   npcsCount?: number;
 }
 
-const RC: Record<string, string> = {
-  F: "#9ca3af",
-  E: "#86efac",
-  D: "#67e8f9",
-  C: "#93c5fd",
-  B: "#c4b5fd",
-  A: "#fde68a",
-  S: "#fb923c",
-  SS: "#f87171",
-  SSS: "#e879f9",
-  DIVIN: "#fef9c3",
-};
-
-const RG: Record<string, string> = {
-  F: "#6b7280",
-  E: "#4ade80",
-  D: "#22d3ee",
-  C: "#60a5fa",
-  B: "#a78bfa",
-  A: "#f59e0b",
-  S: "#ea580c",
-  SS: "#dc2626",
-  SSS: "#d946ef",
-  DIVIN: "#fde047",
-};
-
-const Bar: React.FC<{
+const ProgressBar: React.FC<{
   value: number;
   max: number;
   color: string;
-  glow: string;
-}> = ({ value, max, color, glow }) => (
-  <div
-    style={{
-      height: 5,
-      background: "rgba(0,0,0,.45)",
-      borderRadius: 3,
-      overflow: "hidden",
-    }}
-  >
-    <div
-      style={{
-        height: "100%",
-        width: `${Math.min(100, Math.round((value / max) * 100))}%`,
-        borderRadius: 3,
-        background: `linear-gradient(90deg,${color}55,${color})`,
-        boxShadow: `0 0 5px ${glow}`,
-        transition: "width .9s ease",
-      }}
-    />
+  icon: string;
+}> = ({ value, max, color, icon }) => (
+  <div className="flex items-center gap-1.5 min-w-[100px] flex-1 sm:flex-initial">
+    <span className="text-[10px] opacity-80">{icon}</span>
+    <div className="flex-1 h-1.5 bg-background/40 rounded-full overflow-hidden border border-border/20">
+      <div
+        className="h-full transition-all duration-1000 ease-out rounded-full"
+        style={{
+          width: `${Math.min(100, (value / max) * 100)}%`,
+          backgroundColor: color,
+          boxShadow: `0 0 8px ${color}44`,
+        }}
+      />
+    </div>
+    <span 
+      className="text-[9px] font-bold tabular-nums w-8 text-right"
+      style={{ color, fontFamily: "'Cinzel', serif" }}
+    >
+      {value}
+    </span>
   </div>
 );
 
@@ -128,200 +109,139 @@ export const Navbar: React.FC<NavbarProps> = ({
   dream = false,
   npcsCount = 0,
 }) => {
-  const rc = RC[stats.rank] || "#9ca3af";
-  const rg = RG[stats.rank] || "#6b7280";
+  const rankColor = RANK_COLORS[stats.rank] || "#9ca3af";
 
   return (
-    <div className="flex flex-col flex-shrink-0 relative z-20 w-full">
-      {/* HEADER */}
-      <div
-        style={{
-          background: "linear-gradient(180deg,rgba(8,4,1,.99),rgba(10,5,1,.97))",
-          borderBottom: `1px solid ${theme.hb}`,
-          transition: "border-color 1.8s",
-        }}
-        className="px-3 py-1.5 flex items-center justify-between shadow-[0_2px_13px_rgba(0,0,0,0.8)]"
-      >
-        <div className="flex items-center gap-2">
-          <div
-            style={{
-              background: `${theme.accent}16`,
-              border: `1px solid ${theme.accent}42`,
-            }}
-            className="w-8 h-8 rounded flex items-center justify-center text-base"
+    <nav className="relative z-50 flex flex-col w-full select-none">
+      {/* Background with Glassmorphism */}
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-md border-b border-border transition-colors duration-1000" 
+           style={{ borderBottomColor: theme.hb }} />
+
+      {/* Main Header Row */}
+      <div className="relative px-3 py-2 sm:px-4 flex items-center justify-between gap-4">
+        
+        {/* Brand/Title Section */}
+        <div className="flex items-center gap-3">
+          <div 
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-card border border-border shadow-inner group transition-all"
+            style={{ borderColor: `${theme.accent}44` }}
           >
-            📖
+            <Sparkles 
+              size={18} 
+              className="transition-transform group-hover:scale-110" 
+              style={{ color: dream ? "var(--chart-3)" : theme.glow }}
+            />
           </div>
-          <div>
-            <div
-              style={{
-                color: dream ? "#c8a0ff" : theme.glow,
-                transition: "color 1.8s",
-                fontFamily: "'Cinzel Decorative', serif",
-              }}
-              className="text-[9px] tracking-[1.5px]"
+          <div className="hidden sm:block leading-tight">
+            <h1 
+              className="text-[11px] font-black tracking-[2px] uppercase whitespace-nowrap"
+              style={{ color: dream ? "var(--chart-3)" : theme.glow, fontFamily: "'Cinzel Decorative', serif" }}
             >
-              CHRONIQUES D'ARCANIS
-            </div>
-            <div
-              style={{ color: `${theme.accent}77` }}
-              className="text-[6px] tracking-[2px]"
-            >
-              {theme.name.toUpperCase()} · RPG TEXTUEL
-            </div>
+              Chroniques d'Arcanis
+            </h1>
+            <p className="text-[7px] font-bold opacity-40 uppercase tracking-[3px] text-foreground">
+              {theme.name} • RPG Narratif
+            </p>
           </div>
         </div>
 
-        <div className="flex gap-1.5 items-center">
-          <div className="text-center">
-            <div
-              style={{ color: `${theme.accent}77` }}
-              className="text-[6px] tracking-widest"
-            >
-              RANG
+        {/* Stats Section */}
+        <div className="flex flex-1 items-center justify-center gap-4 max-w-2xl">
+          {/* Level & Rank Pill */}
+          <div className="flex items-center bg-muted rounded-full px-3 py-1 border border-border gap-3 shrink-0">
+            <div className="flex flex-col items-center leading-none">
+              <span className="text-[6px] opacity-40 font-bold uppercase tracking-tighter text-foreground">Niv</span>
+              <span className="text-[11px] font-bold text-secondary-foreground font-cinzel">{stats.level}</span>
             </div>
-            <div
-              style={{
-                color: rc,
-                textShadow: `0 0 8px ${rg}`,
-                fontFamily: "'Cinzel', serif",
-              }}
-              className="text-xs font-black"
-            >
-              {stats.rank}
-            </div>
-          </div>
-
-          <div
-            style={{ background: `${theme.accent}20` }}
-            className="w-px h-[22px]"
-          />
-
-          <div className="text-center">
-            <div
-              style={{ color: `${theme.accent}77` }}
-              className="text-[6px] tracking-widest"
-            >
-              NIV
-            </div>
-            <div
-              style={{ fontFamily: "'Cinzel', serif" }}
-              className="text-xs font-bold text-[#c9a96e]"
-            >
-              {stats.level}
-            </div>
-          </div>
-
-          <div
-            style={{ background: `${theme.accent}20` }}
-            className="w-px h-[22px]"
-          />
-
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-1">
-              <span className="text-[8px]">❤️</span>
-              <div className="w-11">
-                <Bar
-                  value={stats.hp}
-                  max={stats.hpMax}
-                  color="#ef4444"
-                  glow="rgba(239,68,68,0.5)"
-                />
-              </div>
-              <span
-                style={{ fontFamily: "'Cinzel', serif" }}
-                className="text-[7px] text-[#ef4444] min-w-[20px]"
-              >
-                {stats.hp}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[8px]">💧</span>
-              <div className="w-11">
-                <Bar
-                  value={stats.mana}
-                  max={stats.manaMax}
-                  color="#60a5fa"
-                  glow="rgba(96,165,250,0.5)"
-                />
-              </div>
-              <span
-                style={{ fontFamily: "'Cinzel', serif" }}
-                className="text-[7px] text-[#60a5fa] min-w-[20px]"
-              >
-                {stats.mana}
+            <div className="w-px h-4 bg-border" />
+            <div className="flex flex-col items-center leading-none">
+              <span className="text-[6px] opacity-40 font-bold uppercase tracking-tighter text-foreground">Rang</span>
+              <span className="text-[11px] font-black font-cinzel" style={{ color: rankColor, textShadow: `0 0 8px ${rankColor}44` }}>
+                {stats.rank}
               </span>
             </div>
           </div>
 
+          {/* Health & Mana Bars */}
+          <div className="hidden md:flex flex-1 items-center gap-6 max-w-md">
+            <ProgressBar value={stats.hp} max={stats.hpMax} color="var(--destructive)" icon="❤️" />
+            <ProgressBar value={stats.mana} max={stats.manaMax} color="var(--chart-2)" icon="💧" />
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
           {onReset && (
             <button
               onClick={onReset}
-              title="Nouvelle partie"
-              className="w-6.5 h-6.5 rounded bg-[rgba(239,68,68,0.07)] border border-[rgba(239,68,68,0.2)] text-[rgba(239,68,68,0.7)] cursor-pointer flex items-center justify-center text-[11px] shrink-0 hover:bg-[rgba(239,68,68,0.18)] transition-colors"
+              className="p-2 rounded-lg hover:bg-destructive/10 text-destructive hover:text-destructive transition-all cursor-pointer"
+              title="Réinitialiser l'aventure"
             >
-              🗑️
+              <RotateCcw size={16} />
             </button>
           )}
           {onToggleFS && (
             <button
               onClick={onToggleFS}
-              title={isFS ? "Quitter" : "Plein écran"}
-              style={{
-                background: `${theme.accent}10`,
-                border: `1px solid ${theme.accent}28`,
-                color: theme.accent,
-              }}
-              className="w-6.5 h-6.5 rounded cursor-pointer flex items-center justify-center text-xs shrink-0 hover:bg-[opacity-22] transition-colors"
+              className="p-2 rounded-lg hover:bg-accent text-accent-foreground hover:text-foreground transition-all cursor-pointer"
+              title={isFS ? "Quitter le plein écran" : "Plein écran"}
             >
-              {isFS ? "⊠" : "⊡"}
+              {isFS ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
           )}
         </div>
       </div>
 
-      {/* TABS */}
-      <div
-        style={{
-          background: "rgba(8,4,1,.98)",
-          borderBottom: `1px solid ${theme.tb}`,
-          transition: "border-color 1.8s",
-        }}
-        className="h-9 flex overflow-x-auto overflow-y-hidden scrollbar-none"
-      >
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            style={{
-              borderBottom:
-                currentTab === t.id
-                  ? `2px solid ${theme.accent}`
-                  : "2px solid transparent",
-              color: currentTab === t.id ? theme.glow : "#4a3220",
-              transition: "color .2s, border-color 1.8s",
-              fontFamily: "'Cinzel', serif",
-            }}
-            className="shrink-0 h-full px-2.5 bg-none border-none cursor-pointer text-[9px] tracking-wider flex items-center gap-1 whitespace-nowrap"
-          >
-            <span className="text-[11px]">{t.icon}</span>
-            <span>{t.label}</span>
-            {t.id === "npcs" && npcsCount > 0 && (
-              <span
-                style={{
-                  background: `${theme.accent}20`,
-                  border: `1px solid ${theme.accent}30`,
-                  color: theme.accent,
-                }}
-                className="text-[7px] rounded-[9px] px-1"
-              >
-                {npcsCount}
-              </span>
-            )}
-          </button>
-        ))}
+      {/* Mobile Stats Row (Visible only on mobile) */}
+      <div className="relative md:hidden px-4 pb-2 flex gap-4">
+        <ProgressBar value={stats.hp} max={stats.hpMax} color="var(--destructive)" icon="❤️" />
+        <ProgressBar value={stats.mana} max={stats.manaMax} color="var(--chart-2)" icon="💧" />
       </div>
-    </div>
+
+      {/* Tabs Navigation */}
+      <div className="relative border-t border-border px-2">
+        <div className="flex items-center overflow-x-auto no-scrollbar gap-1 py-1">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "group relative px-4 py-2 rounded-md transition-all duration-300 cursor-pointer flex items-center gap-2 whitespace-nowrap",
+                currentTab === t.id 
+                  ? "bg-primary text-primary-foreground" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              )}
+              style={{ fontFamily: "'Cinzel', serif" }}
+            >
+              <span className={cn(
+                "text-xs transition-transform duration-300",
+                currentTab === t.id ? "scale-110" : "group-hover:scale-110"
+              )}>
+                {t.icon}
+              </span>
+              <span className="text-[10px] font-bold tracking-wider uppercase">
+                {t.label}
+              </span>
+              
+              {/* Active Indicator Line */}
+              {currentTab === t.id && (
+                <div 
+                  className="absolute bottom-1 left-4 right-4 h-[2px] rounded-full transition-colors duration-1000"
+                  style={{ backgroundColor: theme.accent }}
+                />
+              )}
+
+              {/* Special Badge for NPCs */}
+              {t.id === "npcs" && npcsCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-chart-4/20 text-chart-4 text-[8px] font-black border border-chart-4/30">
+                  {npcsCount}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </nav>
   );
 };
 
