@@ -35,7 +35,7 @@ export function StoryMessages({ messages }: StoryMessagesProps) {
                 : "bg-muted text-muted-foreground rounded-br-none border border-neutral-700/50 ml-auto",
             )}
           >
-            <p className="leading-relaxed">{message.story}</p>
+            <p className="leading-relaxed">{message.story || message}</p>
           </div>
         );
       })}
