@@ -10,6 +10,7 @@ import {
 } from "./components/navbar";
 import { GameInput } from "./components/game-input";
 import { StoryMessages } from "./components/story-messages";
+import { getActionPrompt } from "./lib/game-prompts";
 
 function App() {
   const [isPrompting, setIsPrompting] = useState(false);
@@ -35,14 +36,26 @@ function App() {
   }, [API_URL]);
 
   const generateText = async () => {
-    if (!prompt.trim()) return;
+    const userMessage = prompt;
+    if (!userMessage) return;
+    
+    setPrompt("");
     setIsPrompting(true);
+    
+    // Ajout local immédiat
+    setMessageList((prev) => [...prev, userMessage]);
+
     try {
-      const res = await axios.post(`${API_URL}/ai/generate`, { prompt });
-      setMessageList((prev) => [...prev, prompt, res.data.text]);
-      setPrompt("");
+      const res = await axios.post(`${API_URL}/ai/generate`, { 
+        prompt: getActionPrompt(userMessage, messageList) 
+      });
+      
+      if (res.data?.text) {
+        setMessageList((prev) => [...prev, res.data.text]);
+      }
     } catch (error) {
       console.error("Erreur lors de la génération:", error);
+      setMessageList((prev) => [...prev, "Le grimoire semble fermé..."]);
     } finally {
       setIsPrompting(false);
     }
