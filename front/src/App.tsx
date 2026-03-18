@@ -9,6 +9,7 @@ import {
   type NavbarTheme,
 } from "./components/navbar";
 import { GameInput } from "./components/game-input";
+import { StoryMessages } from "./components/story-messages";
 
 function App() {
   const [isPrompting, setIsPrompting] = useState(false);
@@ -87,16 +88,7 @@ function App() {
       <div className="flex-1 sm:w-4/6 w-full px-2 mx-auto py-2 flex flex-col justify-between items-center overflow-hidden">
         {tab === "game" ? (
           <>
-            <div className="w-full flex-1 space-y-2 overflow-y-auto mb-4 scrollbar-thin">
-              {messageList.map((message, index) => (
-                <p
-                  key={index}
-                  className={`${index % 2 === 0 ? "bg-primary text-primary-foreground" : "ml-auto bg-muted text-muted-foreground"} w-3/4 border-neutral-600 px-3 py-2 rounded-lg text-sm shadow-sm`}
-                >
-                  {message}
-                </p>
-              ))}
-            </div>
+            <StoryMessages messages={messageList} />
             <GameInput
               prompt={prompt}
               setPrompt={setPrompt}
