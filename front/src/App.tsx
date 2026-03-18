@@ -1,6 +1,3 @@
-import { Loader, SendHorizonal } from "lucide-react";
-import { Input } from "./components/ui/input";
-import { Button } from "./components/ui/button";
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import {
@@ -11,6 +8,7 @@ import {
   type NavbarStats,
   type NavbarTheme,
 } from "./components/navbar";
+import { GameInput } from "./components/game-input";
 
 function App() {
   const [isPrompting, setIsPrompting] = useState(false);
@@ -99,32 +97,13 @@ function App() {
                 </p>
               ))}
             </div>
-            <form
-              className="w-full flex gap-x-2 justify-center items-center pb-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                generateText();
-              }}
-            >
-              <Input
-                disabled={isPrompting}
-                className="w-full bg-card"
-                placeholder="Décrivez l'action d'Élysia..."
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-              />
-              <Button
-                disabled={isPrompting || !prompt.trim()}
-                className="cursor-pointer"
-                type="submit"
-              >
-                {isPrompting ? (
-                  <Loader className="animate-spin" />
-                ) : (
-                  <SendHorizonal />
-                )}
-              </Button>
-            </form>
+            <GameInput
+              prompt={prompt}
+              setPrompt={setPrompt}
+              onSubmit={generateText}
+              isLoading={isPrompting}
+              placeholder="Décrivez l'action d'Élysia..."
+            />
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground italic text-center px-4">
