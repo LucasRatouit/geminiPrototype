@@ -24,3 +24,8 @@ services:
     command: npm run dev
     depends_on:
       - back
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"

@@ -1,2 +1,5 @@
 .env
+
+/ollama
 GEMINI.md
+CLAUDE.md

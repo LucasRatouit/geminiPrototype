@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { User, Sparkles } from "lucide-react";
 
 interface StoryMessagesProps {
-  messages: string[];
+  messages: (string | { story: string; actions?: string[]; xp?: number })[];
 }
 
 /**
