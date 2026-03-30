@@ -1,3 +1,6 @@
 # geminiPrototype
 
-Test AI API
+## AI test
+
+- Gemini
+- Ollama : Qwen3.5:35b
