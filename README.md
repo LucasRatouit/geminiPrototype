@@ -4,4 +4,4 @@
 
 - Gemini
 - Ollama : Qwen3.5:35b
-- n8n : ollama !
+- n8n : ollama
