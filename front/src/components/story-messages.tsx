@@ -28,7 +28,7 @@ export function StoryMessages({ messages }: StoryMessagesProps) {
     >
       <div className="flex flex-col gap-5 py-2 sm:py-4">
         {messages.map((message, index) => {
-          const isPlayer = index % 2 !== 0; // Correction logic : Le premier message (index 0) est généralement l'IA
+          const isPlayer = index % 2 === 0; // Le premier message (index 0) est celui du joueur
 
           return (
             <div
