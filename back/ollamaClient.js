@@ -1,7 +1,7 @@
 import { Ollama } from 'ollama'
 
 const ollama = new Ollama({
-    host: 'http://ollama:11434', // URL de l'API Ollama
+    host: 'http://host.docker.internal:11434', // URL de l'API Ollama
 })
 
 export async function generateText(prompt, onTokenCallback) {
