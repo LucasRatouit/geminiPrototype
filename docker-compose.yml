@@ -6,6 +6,7 @@ services:
     environment:
       - PORT=3000
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OLLAMA_MODEL=qwen3.5:9b
     volumes:
       - ./back:/app
     command: npm run dev

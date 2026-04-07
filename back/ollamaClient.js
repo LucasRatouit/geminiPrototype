@@ -26,7 +26,7 @@ export async function generateText(prompt, onTokenCallback) {
 
   try {
     const response = await ollama.chat({
-        model: 'qwen3.5:9b',
+        model: process.env.OLLAMA_MODEL || 'qwen3.5:9b',
         messages: [
             {role: 'system', content: systemInstruction},
             {role: 'user', content: prompt},
