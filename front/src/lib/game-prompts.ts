@@ -10,6 +10,19 @@ TON : Mystérieux, poétique, immersif (5 sens).
 `;
 
 /**
+ * Génère le prompt pour la phrase d'accroche narrative d'ouverture.
+ * Utilisé au chargement initial de l'app pour immerger le joueur immédiatement.
+ */
+export const getOpeningHookPrompt = () => `
+${NARRATIVE_CONTEXT}
+
+CONSIGNE : Tu es le narrateur. Génère une scène d'ouverture immersive (2-4 phrases) pour commencer l'aventure.
+Décris Élysia qui s'éveille dans sa chambre à l'Académie des Voiles Éternelles, au petit matin.
+Inclus des détails sensoriels (lumière, sons, odeurs) et un élément mystérieux qui donne envie de continuer.
+Termine par une invitation implicite à l'action.
+`;
+
+/**
  * Génère le prompt minimal pour l'action du joueur.
  */
 export const getActionPrompt = (action: string, history: string[]) => `

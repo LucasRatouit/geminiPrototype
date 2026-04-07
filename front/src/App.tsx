@@ -12,12 +12,17 @@ import { StoryMessages } from "./components/story-messages";
 import { Sparkles, Zap } from "lucide-react";
 
 // API Services
-import { fetchMessages } from "./api/messages";
-import { fetchGeminiResponse } from "./api/gemini";
-import { streamOllamaResponse } from "./api/ollama";
+import { fetchMessages, resetMessages } from "./api/messages";
+import { fetchGeminiResponse, fetchOpeningHook } from "./api/gemini";
+import { streamOllamaResponse, streamOpeningHook } from "./api/ollama";
 
+type Sender = "player" | "narrator";
 type AIMessage = { story: string; actions?: string[]; xp?: number };
-type Message = string | AIMessage;
+type MessageContent = string | AIMessage;
+interface Message {
+  sender: Sender;
+  content: MessageContent;
+}
 type GenerationMode = "gemini" | "ollama-stream";
 
 function App() {
@@ -27,18 +32,19 @@ function App() {
   const [generationMode, setGenerationMode] =
     useState<GenerationMode>("ollama-stream");
   const eventSourceRef = useRef<EventSource | null>(null);
+  const hookGeneratedRef = useRef(false);
 
   // Navbar States
   const [stats, setStats] = useState<NavbarStats>(DEFAULT_STATS);
   const [theme, setTheme] = useState<NavbarTheme>(DEFAULT_THEME);
   const [tab, setTab] = useState("game");
   const [isFS, setIsFS] = useState(false);
-  const [dream] = useState(false); // Suppression de setDream si inutilisé
+  const [dream] = useState(false);
 
-  const updateLastMessage = useCallback((content: Message) => {
+  const updateLastMessage = useCallback((content: MessageContent) => {
     setMessageList((prev) => {
       const newList = [...prev];
-      newList[newList.length - 1] = content;
+      newList[newList.length - 1] = { ...newList[newList.length - 1], content };
       return newList;
     });
   }, []);
@@ -46,11 +52,68 @@ function App() {
   const getMessages = useCallback(async () => {
     try {
       const messages = await fetchMessages();
-      setMessageList(messages);
+      if (messages.length > 0) {
+        setMessageList(messages);
+        hookGeneratedRef.current = true;
+        return true;
+      }
     } catch (error) {
       console.error("Erreur historique:", error);
     }
+    return false;
   }, []);
+
+  const extractText = (content: MessageContent): string =>
+    typeof content === "string" ? content : content.story;
+
+  const generateOpeningHook = useCallback(async () => {
+    setIsPrompting(true);
+
+    if (generationMode === "ollama-stream") {
+      setMessageList((prev) => [...prev, { sender: "narrator", content: "" }]);
+
+      if (eventSourceRef.current) eventSourceRef.current.close();
+
+      eventSourceRef.current = streamOpeningHook({
+        onUpdate: (fullText) => updateLastMessage(fullText),
+        onDone: (data) => {
+          if (data.response) {
+            updateLastMessage(data.response);
+          }
+          setIsPrompting(false);
+          hookGeneratedRef.current = true;
+        },
+        onError: (err) => {
+          console.error("Flux Ollama rompu (hook):", err);
+          setIsPrompting(false);
+          updateLastMessage("L'oracle s'est déconnecté...");
+          hookGeneratedRef.current = true;
+        },
+      });
+    } else {
+      try {
+        const hook = await fetchOpeningHook();
+        if (hook) {
+          setMessageList((prev) => [
+            ...prev,
+            { sender: "narrator", content: hook },
+          ]);
+        }
+      } catch (error) {
+        console.error("Erreur hook d'ouverture:", error);
+        setMessageList((prev) => [
+          ...prev,
+          {
+            sender: "narrator",
+            content: "Une perturbation magique empêche la vision de se former...",
+          },
+        ]);
+      } finally {
+        setIsPrompting(false);
+        hookGeneratedRef.current = true;
+      }
+    }
+  }, [generationMode, updateLastMessage]);
 
   const generateGemini = async () => {
     if (!prompt) return;
@@ -58,17 +121,25 @@ function App() {
     const userMessage = prompt;
     setPrompt("");
     setIsPrompting(true);
-    setMessageList((prev) => [...prev, userMessage]);
+    setMessageList((prev) => [
+      ...prev,
+      { sender: "player", content: userMessage },
+    ]);
 
     try {
-      const history = messageList.map((m) =>
-        typeof m === "string" ? m : m.story,
-      );
+      const history = messageList.map((m) => extractText(m.content));
       const text = await fetchGeminiResponse(userMessage, history);
-      if (text) setMessageList((prev) => [...prev, text]);
+      if (text)
+        setMessageList((prev) => [
+          ...prev,
+          { sender: "narrator", content: text },
+        ]);
     } catch (error) {
       console.error("Erreur Gemini:", error);
-      setMessageList((prev) => [...prev, "Le grimoire est scellé..."]);
+      setMessageList((prev) => [
+        ...prev,
+        { sender: "narrator", content: "Le grimoire est scellé..." },
+      ]);
     } finally {
       setIsPrompting(false);
     }
@@ -81,10 +152,12 @@ function App() {
     setPrompt("");
     setIsPrompting(true);
 
-    setMessageList((prev) => [...prev, userMessage, ""]);
-    const history = messageList.map((m) =>
-      typeof m === "string" ? m : m.story,
-    );
+    setMessageList((prev) => [
+      ...prev,
+      { sender: "player", content: userMessage },
+      { sender: "narrator", content: "" },
+    ]);
+    const history = messageList.map((m) => extractText(m.content));
 
     if (eventSourceRef.current) eventSourceRef.current.close();
 
@@ -113,10 +186,14 @@ function App() {
       : generateGemini();
   };
 
-  const resetGame = () => {
+  const resetGame = async () => {
     if (window.confirm("Recommencer l'aventure ?")) {
+      eventSourceRef.current?.close();
+      await resetMessages();
       setMessageList([]);
+      hookGeneratedRef.current = false;
       setStats(DEFAULT_STATS);
+      generateOpeningHook();
     }
   };
 
@@ -127,14 +204,29 @@ function App() {
   };
 
   useEffect(() => {
-    getMessages();
     const fn = () => setIsFS(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", fn);
     return () => {
       document.removeEventListener("fullscreenchange", fn);
-      eventSourceRef.current?.close();
     };
-  }, [getMessages]);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const init = async () => {
+      const hasHistory = await getMessages();
+      if (cancelled || hasHistory || hookGeneratedRef.current) return;
+
+      generateOpeningHook();
+    };
+
+    init();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getMessages, generateOpeningHook]);
 
   return (
     <div className="w-screen h-screen bg-background text-secondary-foreground flex flex-col overflow-hidden">

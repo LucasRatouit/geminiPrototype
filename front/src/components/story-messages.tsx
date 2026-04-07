@@ -2,9 +2,19 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { User, Sparkles } from "lucide-react";
 
-interface StoryMessagesProps {
-  messages: (string | { story: string; actions?: string[]; xp?: number })[];
+type AIMessage = { story: string; actions?: string[]; xp?: number };
+type MessageContent = string | AIMessage;
+interface Message {
+  sender: "player" | "narrator";
+  content: MessageContent;
 }
+
+interface StoryMessagesProps {
+  messages: Message[];
+}
+
+const extractText = (content: MessageContent): string =>
+  typeof content === "string" ? content : content.story;
 
 /**
  * StoryMessages modernisé : bulles immersives, typographie soignée et animations fluides.
@@ -27,10 +37,15 @@ export function StoryMessages({ messages }: StoryMessagesProps) {
       className="w-full flex-1 space-y-4 overflow-y-auto mb-4 px-2 sm:px-4 scrollbar-none mask-fade-out"
     >
       <div className="flex flex-col gap-5 py-2 sm:py-4">
-        {messages.map((message, index) => {
-          const isPlayer = index % 2 === 0; // Le premier message (index 0) est celui du joueur
+        {messages
+          .filter((message) => {
+            const text = extractText(message.content);
+            return text && text.trim().length > 0;
+          })
+          .map((message, index) => {
+            const isPlayer = message.sender === "player";
 
-          return (
+            return (
             <div
               key={index}
               className={cn(
@@ -84,9 +99,7 @@ export function StoryMessages({ messages }: StoryMessagesProps) {
                     {isPlayer ? "Élysia" : "Le Conteur"}
                   </span>
                   <p className="whitespace-pre-wrap">
-                    {message.story || message}{" "}
-                    {/* message.story = message de l'IA, message = message du
-                  joueur */}
+                    {extractText(message.content)}{" "}
                   </p>{" "}
                   {isPlayer && (
                     <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none rounded-2xl" />

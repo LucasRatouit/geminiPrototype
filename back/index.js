@@ -16,15 +16,24 @@ app.get("/ai/messages", (req, res) => {
   res.json({ messages: messageList });
 });
 
+app.delete("/ai/messages", (req, res) => {
+  messageList.length = 0;
+  res.json({ success: true });
+});
+
 // Route pour Gemini (réponse complète)
 app.post("/ai/generate/gemini", async (req, res) => {
-  const userMessage = req.body.prompt;
-  if (!userMessage) {
+  const { prompt, userMessage } = req.body;
+  if (!prompt) {
     return res.status(400).send("Prompt is required.");
   }
 
   try {
-    const aiResponse = await generateGemini(userMessage);
+    if (userMessage) {
+      messageList.push({ sender: "player", content: userMessage });
+    }
+    const aiResponse = await generateGemini(prompt);
+    messageList.push({ sender: "narrator", content: aiResponse });
     res.json({ text: aiResponse });
   } catch (error) {
     console.error("Error generating text:", error);
@@ -35,8 +44,13 @@ app.post("/ai/generate/gemini", async (req, res) => {
 // Route pour Ollama avec streaming (Server-Sent Events)
 app.get("/ai/generate/ollama/stream", (req, res) => {
   const prompt = req.query.prompt;
+  const userMessage = req.query.userMessage;
   if (!prompt) {
     return res.status(400).send("Prompt is required.");
+  }
+
+  if (userMessage) {
+    messageList.push({ sender: "player", content: userMessage });
   }
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -47,6 +61,7 @@ app.get("/ai/generate/ollama/stream", (req, res) => {
     res.write(`data: ${JSON.stringify({ token })}\n\n`);
   })
   .then((finalResponse) => {
+    messageList.push({ sender: "narrator", content: finalResponse });
     res.write(`data: ${JSON.stringify({ done: true, response: finalResponse })}\n\n`);
     res.end();
   })
