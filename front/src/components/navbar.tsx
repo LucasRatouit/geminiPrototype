@@ -123,8 +123,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Brand/Title Section */}
         <div className="flex items-center gap-3">
           <div 
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-card border border-border shadow-inner group transition-all"
-            style={{ borderColor: `${theme.accent}44` }}
+            className="w-9 h-9 flex items-center justify-center group transition-all"
           >
             <Sparkles 
               size={18} 
