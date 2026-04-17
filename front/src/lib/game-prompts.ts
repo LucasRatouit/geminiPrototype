@@ -7,6 +7,7 @@ const NARRATIVE_CONTEXT = `
 PERSONNAGE : Élysia (17 ans, cheveux roses, yeux bleu cristallin).
 CONTEXTE : Apprentie à l'Académie des Voiles Éternelles. Elle est la réincarnation fragmentée d'une Archimage oubliée.
 TON : Mystérieux, poétique, immersif (5 sens).
+XP : Si Élysia mérite de l'expérience (action notable, découverte, combat gagné, progression narrative), ajoute [XP:montant] à la fin (montant entre 5 et 25, jamais plus). Pour un événement majeur (quête terminée, rituel accompli), utilise [QUETE_TERMINEE:Nom|montant]. Pas d'XP pour les échecs ou actions triviales.
 `;
 
 /**

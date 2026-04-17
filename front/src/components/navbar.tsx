@@ -9,6 +9,13 @@ export interface NavbarStats {
   hpMax: number;
   mana: number;
   manaMax: number;
+  xp: number;
+  xpMax: number;
+  strength: number;
+  intelligence: number;
+  spirit: number;
+  agility: number;
+  charisma: number;
 }
 
 export interface NavbarTheme {
@@ -42,6 +49,13 @@ export const DEFAULT_STATS: NavbarStats = {
   hpMax: 100,
   mana: 80,
   manaMax: 80,
+  xp: 0,
+  xpMax: 100,
+  strength: 8,
+  intelligence: 12,
+  spirit: 10,
+  agility: 9,
+  charisma: 11,
 };
 
 export const DEFAULT_THEME: NavbarTheme = {
@@ -165,6 +179,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="hidden md:flex flex-1 items-center gap-6 max-w-md">
             <ProgressBar value={stats.hp} max={stats.hpMax} color="var(--destructive)" icon="❤️" />
             <ProgressBar value={stats.mana} max={stats.manaMax} color="var(--chart-2)" icon="💧" />
+            <ProgressBar value={stats.xp} max={stats.xpMax} color="#d4a843" icon="⭐" />
           </div>
         </div>
 
@@ -192,9 +207,12 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Mobile Stats Row (Visible only on mobile) */}
-      <div className="relative md:hidden px-4 pb-2 flex gap-4">
-        <ProgressBar value={stats.hp} max={stats.hpMax} color="var(--destructive)" icon="❤️" />
-        <ProgressBar value={stats.mana} max={stats.manaMax} color="var(--chart-2)" icon="💧" />
+      <div className="relative md:hidden px-4 pb-2 flex flex-col gap-2">
+        <div className="flex gap-4">
+          <ProgressBar value={stats.hp} max={stats.hpMax} color="var(--destructive)" icon="❤️" />
+          <ProgressBar value={stats.mana} max={stats.manaMax} color="var(--chart-2)" icon="💧" />
+        </div>
+        <ProgressBar value={stats.xp} max={stats.xpMax} color="#d4a843" icon="⭐" />
       </div>
 
       {/* Tabs Navigation */}

@@ -13,8 +13,25 @@ interface StoryMessagesProps {
   messages: Message[];
 }
 
-const extractText = (content: MessageContent): string =>
+const extractRaw = (content: MessageContent): string =>
   typeof content === "string" ? content : content.story;
+
+const cleanNarrativeText = (text: string): string =>
+  text
+    .replace(/\[HUD_START\][\s\S]*?\[HUD_END\]/g, "")
+    .replace(/\[NPC_START\][\s\S]*?\[NPC_END\]/g, "")
+    .replace(/\[ARME_START\][\s\S]*?\[ARME_END\]/g, "")
+    .replace(/\[ITEM_ARME\][\s\S]*?\[\/ITEM_ARME\]/g, "")
+    .replace(/\[LIEU_START\][\s\S]*?\[LIEU_END\]/g, "")
+    .replace(/\[DÉGÂTS:\d+\]/g, "")
+    .replace(/\[RÊVE:(debut|fin)\]/g, "")
+    .replace(/\[LEVEL_UP\]/g, "")
+    .replace(/\[QUETE_TERMINEE:[^\]]+\]/g, "")
+    .replace(/\[XP:\d+\]/g, "")
+    .replace(/\[THEME:[^\]]+\]/g, "")
+    .replace(/\[REP:[^\]]+\]/g, "")
+    .replace(/\[PAROLE:([^\]]+)\]([\s\S]*?)\[\/PAROLE\]/g, "$2")
+    .trim();
 
 /**
  * StoryMessages modernisé : bulles immersives, typographie soignée et animations fluides.
@@ -39,11 +56,12 @@ export function StoryMessages({ messages }: StoryMessagesProps) {
       <div className="flex flex-col gap-5 py-2 sm:py-4">
         {messages
           .filter((message) => {
-            const text = extractText(message.content);
+            const text = cleanNarrativeText(extractRaw(message.content));
             return text && text.trim().length > 0;
           })
           .map((message, index) => {
             const isPlayer = message.sender === "player";
+            const displayText = cleanNarrativeText(extractRaw(message.content));
 
             return (
             <div
@@ -99,7 +117,7 @@ export function StoryMessages({ messages }: StoryMessagesProps) {
                     {isPlayer ? "Élysia" : "Le Conteur"}
                   </span>
                   <p className="whitespace-pre-wrap">
-                    {extractText(message.content)}{" "}
+                    {displayText}{" "}
                   </p>{" "}
                   {isPlayer && (
                     <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none rounded-2xl" />
@@ -122,3 +140,6 @@ export function StoryMessages({ messages }: StoryMessagesProps) {
     </div>
   );
 }
+
+export { cleanNarrativeText, extractRaw };
+export type { Message as StoryMessage, AIMessage, MessageContent };
