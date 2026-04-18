@@ -15,9 +15,10 @@ export default defineConfig({
     port: 4000,
     allowedHosts: ["prototype.annihi.fr"],
     proxy: {
-      "/ai": {
+      "/api": {
         target: "http://back:3000",
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
   },
