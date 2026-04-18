@@ -12,13 +12,46 @@ app.use(express.json());
 
 const messageList = [];
 
+const DEFAULT_CHARACTER = {
+  rank: "F",
+  level: 1,
+  hp: 100,
+  hpMax: 100,
+  mana: 80,
+  manaMax: 80,
+  xp: 0,
+  xpMax: 100,
+  strength: 8,
+  intelligence: 12,
+  spirit: 10,
+  agility: 9,
+  charisma: 11,
+};
+
+let characterState = { ...DEFAULT_CHARACTER };
+
 app.get("/api/ai/messages", (req, res) => {
   res.json({ messages: messageList });
 });
 
 app.delete("/api/ai/messages", (req, res) => {
   messageList.length = 0;
+  characterState = { ...DEFAULT_CHARACTER };
   res.json({ success: true });
+});
+
+app.get("/api/ai/character", (req, res) => {
+  res.json(characterState);
+});
+
+app.patch("/api/ai/character", (req, res) => {
+  Object.assign(characterState, req.body);
+  res.json(characterState);
+});
+
+app.delete("/api/ai/character", (req, res) => {
+  characterState = { ...DEFAULT_CHARACTER };
+  res.json(characterState);
 });
 
 // Route pour Gemini (réponse complète)

@@ -14,6 +14,7 @@ import { Sparkles, Zap } from "lucide-react";
 
 // API Services
 import { fetchMessages, resetMessages } from "./api/messages";
+import { fetchCharacter, updateCharacter, resetCharacter } from "./api/character";
 import { fetchGeminiResponse, fetchOpeningHook } from "./api/gemini";
 import { streamOllamaResponse, streamOpeningHook } from "./api/ollama";
 
@@ -40,6 +41,14 @@ const SMETA = [
 ];
 
 const XP_MAX_PER_TURN = 25;
+
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
+const syncStatsToServer = (stats: NavbarStats) => {
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    updateCharacter(stats).catch(() => {});
+  }, 500);
+};
 
 function parseXpFromText(text: string): { xp: number; title?: string }[] {
   const results: { xp: number; title?: string }[] = [];
@@ -94,12 +103,19 @@ function App() {
 
   const getMessages = useCallback(async () => {
     try {
-      const messages = await fetchMessages();
+      const [messages, character] = await Promise.all([
+        fetchMessages(),
+        fetchCharacter(),
+      ]);
       if (messages.length > 0) {
         setMessageList(messages);
         hookGeneratedRef.current = true;
-        return true;
       }
+      if (character) {
+        setStats(character);
+        prevLevelRef.current = character.level;
+      }
+      return messages.length > 0;
     } catch (error) {
       console.error("Erreur historique:", error);
     }
@@ -128,7 +144,7 @@ function App() {
         newManaMax += 10;
       }
 
-      return {
+      const next = {
         ...prev,
         xp: newXp,
         xpMax: newXpMax,
@@ -137,6 +153,8 @@ function App() {
         hp: Math.min(prev.hp, newHpMax),
         manaMax: newManaMax,
       };
+      syncStatsToServer(next);
+      return next;
     });
   }, []);
 
@@ -148,18 +166,22 @@ function App() {
   }, [stats.level]);
 
   const doLevelAll = useCallback(() => {
-    setStats((prev) => ({
-      ...prev,
-      hp: prev.hpMax + 15,
-      hpMax: prev.hpMax + 15,
-      mana: prev.manaMax + 10,
-      manaMax: prev.manaMax + 10,
-      strength: prev.strength + 2,
-      intelligence: prev.intelligence + 2,
-      spirit: prev.spirit + 2,
-      agility: prev.agility + 2,
-      charisma: prev.charisma + 2,
-    }));
+    setStats((prev) => {
+      const next = {
+        ...prev,
+        hp: prev.hpMax + 15,
+        hpMax: prev.hpMax + 15,
+        mana: prev.manaMax + 10,
+        manaMax: prev.manaMax + 10,
+        strength: prev.strength + 2,
+        intelligence: prev.intelligence + 2,
+        spirit: prev.spirit + 2,
+        agility: prev.agility + 2,
+        charisma: prev.charisma + 2,
+      };
+      syncStatsToServer(next);
+      return next;
+    });
     setLvlModal(false);
     setLvlMode(null);
   }, []);
@@ -174,10 +196,12 @@ function App() {
         "charisma",
       ] as const;
       if (!validKeys.includes(key as any)) return prev;
-      return {
+      const next = {
         ...prev,
         [key]: (prev as unknown as Record<string, number>)[key] + 5,
       };
+      syncStatsToServer(next as NavbarStats);
+      return next;
     });
     setLvlModal(false);
     setLvlMode(null);
@@ -335,14 +359,22 @@ function App() {
   const resetGame = async () => {
     if (window.confirm("Recommencer l'aventure ?")) {
       eventSourceRef.current?.close();
-      await resetMessages();
+      const [resetChar] = await Promise.all([
+        resetCharacter(),
+        resetMessages(),
+      ]);
       setMessageList([]);
       hookGeneratedRef.current = false;
-      setStats(DEFAULT_STATS);
+      if (resetChar) {
+        setStats(resetChar);
+        prevLevelRef.current = resetChar.level;
+      } else {
+        setStats(DEFAULT_STATS);
+        prevLevelRef.current = DEFAULT_STATS.level;
+      }
       setLvlModal(false);
       setLvlMode(null);
       setXpToast(null);
-      prevLevelRef.current = DEFAULT_STATS.level;
       generateOpeningHook();
     }
   };
