@@ -12,17 +12,17 @@ app.use(express.json());
 
 const messageList = [];
 
-app.get("/ai/messages", (req, res) => {
+app.get("/api/ai/messages", (req, res) => {
   res.json({ messages: messageList });
 });
 
-app.delete("/ai/messages", (req, res) => {
+app.delete("/api/ai/messages", (req, res) => {
   messageList.length = 0;
   res.json({ success: true });
 });
 
 // Route pour Gemini (réponse complète)
-app.post("/ai/generate/gemini", async (req, res) => {
+app.post("/api/ai/generate/gemini", async (req, res) => {
   const { prompt, userMessage } = req.body;
   if (!prompt) {
     return res.status(400).send("Prompt is required.");
@@ -42,7 +42,7 @@ app.post("/ai/generate/gemini", async (req, res) => {
 });
 
 // Route pour Ollama avec streaming (Server-Sent Events)
-app.get("/ai/generate/ollama/stream", (req, res) => {
+app.get("/api/ai/generate/ollama/stream", (req, res) => {
   const prompt = req.query.prompt;
   const userMessage = req.query.userMessage;
   if (!prompt) {
