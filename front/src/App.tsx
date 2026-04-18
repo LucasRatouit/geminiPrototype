@@ -28,7 +28,12 @@ type GenerationMode = "gemini" | "ollama-stream";
 
 const SMETA = [
   { key: "strength" as const, label: "Force", icon: "⚔️", color: "#ef4444" },
-  { key: "intelligence" as const, label: "Intelligence", icon: "🔮", color: "#818cf8" },
+  {
+    key: "intelligence" as const,
+    label: "Intelligence",
+    icon: "🔮",
+    color: "#818cf8",
+  },
   { key: "spirit" as const, label: "Esprit", icon: "✨", color: "#c084fc" },
   { key: "agility" as const, label: "Agilité", icon: "🌬️", color: "#4ade80" },
   { key: "charisma" as const, label: "Charisme", icon: "💬", color: "#fbbf24" },
@@ -41,7 +46,10 @@ function parseXpFromText(text: string): { xp: number; title?: string }[] {
   const questRegex = /\[QUETE_TERMINEE:([^|]+)\|(\d+)\]/g;
   let match;
   while ((match = questRegex.exec(text)) !== null) {
-    results.push({ title: match[1].trim(), xp: Math.min(parseInt(match[2]), XP_MAX_PER_TURN) });
+    results.push({
+      title: match[1].trim(),
+      xp: Math.min(parseInt(match[2]), XP_MAX_PER_TURN),
+    });
   }
   const xpRegex = /\[XP:(\d+)\]/g;
   while ((match = xpRegex.exec(text)) !== null) {
@@ -62,7 +70,9 @@ function App() {
   const eventSourceRef = useRef<EventSource | null>(null);
   const hookGeneratedRef = useRef(false);
 
-  const [xpToast, setXpToast] = useState<{ title?: string; xp: number } | null>(null);
+  const [xpToast, setXpToast] = useState<{ title?: string; xp: number } | null>(
+    null,
+  );
   const [lvlModal, setLvlModal] = useState(false);
   const [lvlMode, setLvlMode] = useState<"all" | "pick" | null>(null);
   const prevLevelRef = useRef(DEFAULT_STATS.level);
@@ -156,20 +166,32 @@ function App() {
 
   const doLevelPick = useCallback((key: string) => {
     setStats((prev) => {
-      const validKeys = ["strength", "intelligence", "spirit", "agility", "charisma"] as const;
+      const validKeys = [
+        "strength",
+        "intelligence",
+        "spirit",
+        "agility",
+        "charisma",
+      ] as const;
       if (!validKeys.includes(key as any)) return prev;
-      return { ...prev, [key]: (prev as Record<string, number>)[key] + 5 };
+      return {
+        ...prev,
+        [key]: (prev as unknown as Record<string, number>)[key] + 5,
+      };
     });
     setLvlModal(false);
     setLvlMode(null);
   }, []);
 
-  const processXpFromResponse = useCallback((text: string) => {
-    const xpResults = parseXpFromText(text);
-    for (const { xp, title } of xpResults) {
-      updateXP(xp, title);
-    }
-  }, [updateXP]);
+  const processXpFromResponse = useCallback(
+    (text: string) => {
+      const xpResults = parseXpFromText(text);
+      for (const { xp, title } of xpResults) {
+        updateXP(xp, title);
+      }
+    },
+    [updateXP],
+  );
 
   const generateOpeningHook = useCallback(async () => {
     setIsPrompting(true);
@@ -210,7 +232,8 @@ function App() {
           ...prev,
           {
             sender: "narrator",
-            content: "Une perturbation magique empêche la vision de se former...",
+            content:
+              "Une perturbation magique empêche la vision de se former...",
           },
         ]);
       } finally {
@@ -239,7 +262,8 @@ function App() {
           ...prev,
           { sender: "narrator", content: text },
         ]);
-        const rawText = typeof text === "string" ? text : (text as AIMessage).story || "";
+        const rawText =
+          typeof text === "string" ? text : (text as AIMessage).story || "";
         processXpFromResponse(rawText);
         if (typeof text === "object" && text !== null && "xp" in text) {
           const xpVal = (text as AIMessage).xp;
@@ -278,9 +302,16 @@ function App() {
       onDone: (data) => {
         if (data.response) {
           updateLastMessage(data.response);
-          const responseText = typeof data.response === "string" ? data.response : data.response.story || "";
+          const responseText =
+            typeof data.response === "string"
+              ? data.response
+              : data.response.story || "";
           processXpFromResponse(responseText);
-          if (typeof data.response === "object" && data.response !== null && "xp" in data.response) {
+          if (
+            typeof data.response === "object" &&
+            data.response !== null &&
+            "xp" in data.response
+          ) {
             const xpVal = data.response.xp;
             if (xpVal && xpVal > 0) updateXP(Math.min(xpVal, XP_MAX_PER_TURN));
           }
@@ -364,17 +395,19 @@ function App() {
 
       {/* XP Toast */}
       {xpToast && (
-        <div
-          className="fixed bottom-4 right-4 z-[500] animate-in slide-in-from-right-5 fade-in duration-400"
-        >
+        <div className="fixed bottom-4 right-4 z-[500] animate-in slide-in-from-right-5 fade-in duration-400">
           <div className="bg-gradient-to-br from-amber-950/95 to-yellow-950/95 border border-amber-500/40 rounded-xl px-4 py-3 shadow-2xl shadow-amber-500/10 max-w-[260px] backdrop-blur-sm">
-            <div className="text-[8px] tracking-[2px] text-amber-600 font-bold uppercase mb-1"
-              style={{ fontFamily: "'Cinzel', serif" }}>
+            <div
+              className="text-[8px] tracking-[2px] text-amber-600 font-bold uppercase mb-1"
+              style={{ fontFamily: "'Cinzel', serif" }}
+            >
               ✦ {xpToast.title ? "QUÊTE ACCOMPLIE" : "EXPÉRIENCE GAGNÉE"} ✦
             </div>
             {xpToast.title && (
-              <div className="text-[13px] text-amber-200 font-semibold mb-1"
-                style={{ fontFamily: "'Cinzel', serif" }}>
+              <div
+                className="text-[13px] text-amber-200 font-semibold mb-1"
+                style={{ fontFamily: "'Cinzel', serif" }}
+              >
                 {xpToast.title}
               </div>
             )}
@@ -388,9 +421,7 @@ function App() {
       {/* Level Up Modal */}
       {lvlModal && (
         <div className="fixed inset-0 z-[600] bg-black/88 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div
-            className="bg-gradient-to-b from-amber-950/98 to-yellow-950/98 border border-amber-400/38 rounded-xl p-6 max-w-[360px] w-full text-center shadow-2xl shadow-amber-400/14 animate-in zoom-in-95 duration-300"
-          >
+          <div className="bg-gradient-to-b from-amber-950/98 to-yellow-950/98 border border-amber-400/38 rounded-xl p-6 max-w-[360px] w-full text-center shadow-2xl shadow-amber-400/14 animate-in zoom-in-95 duration-300">
             <div className="text-4xl mb-3 animate-bounce">⭐</div>
             <div
               className="text-base text-amber-200 tracking-[2px] mb-1"

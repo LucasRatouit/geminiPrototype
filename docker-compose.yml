@@ -1,13 +1,14 @@
 services:
   back:
-    build: ./back
+    build: 
+      context: ./back
+      target: dev
     environment:
       - PORT=3000
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OLLAMA_MODEL=qwen3.5:9b
     volumes:
       - ./back:/app
-    command: npm run dev
 
   front:
     build: 
@@ -20,6 +21,5 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-    command: npm run dev
     depends_on:
       - back
