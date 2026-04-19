@@ -19,7 +19,7 @@ import { fetchGeminiResponse, fetchOpeningHook } from "./api/gemini";
 import { streamOllamaResponse, streamOpeningHook } from "./api/ollama";
 
 type Sender = "player" | "narrator";
-type AIMessage = { story: string; actions?: string[]; xp?: number };
+type AIMessage = { story: string; actions?: string[]; xp?: number; hp?: number; mana?: number };
 type MessageContent = string | AIMessage;
 interface Message {
   sender: Sender;
@@ -67,6 +67,21 @@ function parseXpFromText(text: string): { xp: number; title?: string }[] {
   return results;
 }
 
+function parseHpManaFromText(text: string): { hpDelta: number; manaDelta: number } {
+  let hpDelta = 0;
+  let manaDelta = 0;
+  const hpRegex = /\[VIE:([+-]?\d+)\]/g;
+  let match;
+  while ((match = hpRegex.exec(text)) !== null) {
+    hpDelta += parseInt(match[1]);
+  }
+  const manaRegex = /\[MANA:([+-]?\d+)\]/g;
+  while ((match = manaRegex.exec(text)) !== null) {
+    manaDelta += parseInt(match[1]);
+  }
+  return { hpDelta, manaDelta };
+}
+
 const extractText = (content: MessageContent): string =>
   typeof content === "string" ? content : content.story;
 
@@ -82,6 +97,8 @@ function App() {
   const [xpToast, setXpToast] = useState<{ title?: string; xp: number } | null>(
     null,
   );
+  const [hpToast, setHpToast] = useState<{ delta: number } | null>(null);
+  const [manaToast, setManaToast] = useState<{ delta: number } | null>(null);
   const [lvlModal, setLvlModal] = useState(false);
   const [lvlMode, setLvlMode] = useState<"all" | "pick" | null>(null);
   const prevLevelRef = useRef(DEFAULT_STATS.level);
@@ -127,7 +144,7 @@ function App() {
     const cappedGain = Math.min(gain, XP_MAX_PER_TURN);
 
     setXpToast({ title, xp: cappedGain });
-    setTimeout(() => setXpToast(null), 4000);
+    setTimeout(() => setXpToast(null), 5000);
 
     setStats((prev) => {
       let newXp = prev.xp + cappedGain;
@@ -153,6 +170,30 @@ function App() {
         hp: Math.min(prev.hp, newHpMax),
         manaMax: newManaMax,
       };
+      syncStatsToServer(next);
+      return next;
+    });
+  }, []);
+
+  const updateHP = useCallback((delta: number) => {
+    if (!delta) return;
+    setHpToast({ delta });
+    setTimeout(() => setHpToast(null), 5000);
+    setStats((prev) => {
+      const newHp = Math.max(0, Math.min(prev.hp + delta, prev.hpMax));
+      const next = { ...prev, hp: newHp };
+      syncStatsToServer(next);
+      return next;
+    });
+  }, []);
+
+  const updateMana = useCallback((delta: number) => {
+    if (!delta) return;
+    setManaToast({ delta });
+    setTimeout(() => setManaToast(null), 5000);
+    setStats((prev) => {
+      const newMana = Math.max(0, Math.min(prev.mana + delta, prev.manaMax));
+      const next = { ...prev, mana: newMana };
       syncStatsToServer(next);
       return next;
     });
@@ -215,6 +256,15 @@ function App() {
       }
     },
     [updateXP],
+  );
+
+  const processHpManaFromResponse = useCallback(
+    (text: string) => {
+      const { hpDelta, manaDelta } = parseHpManaFromText(text);
+      if (hpDelta) updateHP(hpDelta);
+      if (manaDelta) updateMana(manaDelta);
+    },
+    [updateHP, updateMana],
   );
 
   const generateOpeningHook = useCallback(async () => {
@@ -289,9 +339,14 @@ function App() {
         const rawText =
           typeof text === "string" ? text : (text as AIMessage).story || "";
         processXpFromResponse(rawText);
-        if (typeof text === "object" && text !== null && "xp" in text) {
+        processHpManaFromResponse(rawText);
+        if (typeof text === "object" && text !== null) {
           const xpVal = (text as AIMessage).xp;
           if (xpVal && xpVal > 0) updateXP(Math.min(xpVal, XP_MAX_PER_TURN));
+          const hpVal = (text as AIMessage).hp;
+          if (hpVal) updateHP(hpVal);
+          const manaVal = (text as AIMessage).mana;
+          if (manaVal) updateMana(manaVal);
         }
       }
     } catch (error) {
@@ -331,13 +386,17 @@ function App() {
               ? data.response
               : data.response.story || "";
           processXpFromResponse(responseText);
+          processHpManaFromResponse(responseText);
           if (
             typeof data.response === "object" &&
-            data.response !== null &&
-            "xp" in data.response
+            data.response !== null
           ) {
             const xpVal = data.response.xp;
             if (xpVal && xpVal > 0) updateXP(Math.min(xpVal, XP_MAX_PER_TURN));
+            const hpVal = data.response.hp;
+            if (hpVal) updateHP(hpVal);
+            const manaVal = data.response.mana;
+            if (manaVal) updateMana(manaVal);
           }
         }
         setIsPrompting(false);
@@ -375,6 +434,8 @@ function App() {
       setLvlModal(false);
       setLvlMode(null);
       setXpToast(null);
+      setHpToast(null);
+      setManaToast(null);
       generateOpeningHook();
     }
   };
@@ -425,30 +486,56 @@ function App() {
         npcsCount={0}
       />
 
-      {/* XP Toast */}
-      {xpToast && (
-        <div className="fixed bottom-4 right-4 z-[500] animate-in slide-in-from-right-5 fade-in duration-400">
-          <div className="bg-gradient-to-br from-amber-950/95 to-yellow-950/95 border border-amber-500/40 rounded-xl px-4 py-3 shadow-2xl shadow-amber-500/10 max-w-[260px] backdrop-blur-sm">
+      {/* Effect Toasts */}
+      <div className="fixed bottom-4 right-4 z-[500] flex flex-col-reverse gap-2 items-end">
+        {xpToast && (
+          <div className="bg-black/85 backdrop-blur-md border-l-[3px] border-amber-500 rounded-lg px-3.5 py-2.5 w-[200px] animate-in slide-in-from-right-5 fade-in duration-500 shadow-lg shadow-amber-500/10">
             <div
-              className="text-[8px] tracking-[2px] text-amber-600 font-bold uppercase mb-1"
+              className="text-[9px] tracking-[2px] text-amber-500/70 font-bold uppercase mb-0.5"
               style={{ fontFamily: "'Cinzel', serif" }}
             >
               ✦ {xpToast.title ? "QUÊTE ACCOMPLIE" : "EXPÉRIENCE GAGNÉE"} ✦
             </div>
             {xpToast.title && (
               <div
-                className="text-[13px] text-amber-200 font-semibold mb-1"
+                className="text-[11px] text-amber-300/80 font-semibold"
                 style={{ fontFamily: "'Cinzel', serif" }}
               >
                 {xpToast.title}
               </div>
             )}
-            <div className="text-[13px] text-yellow-300 font-bold">
+            <div className="text-sm text-amber-200 font-bold">
               +{xpToast.xp} XP ⭐
             </div>
           </div>
-        </div>
-      )}
+        )}
+        {hpToast && (
+          <div className={`bg-black/85 backdrop-blur-md rounded-lg px-3.5 py-2.5 w-[200px] animate-in slide-in-from-right-5 fade-in duration-500 shadow-lg border-l-[3px] ${hpToast.delta > 0 ? "border-green-500 shadow-green-500/10" : "border-red-500 shadow-red-500/10"}`}>
+            <div
+              className="text-[9px] tracking-[2px] font-bold uppercase mb-0.5"
+              style={{ fontFamily: "'Cinzel', serif", color: hpToast.delta > 0 ? "#4ade80" : "#f87171" }}
+            >
+              ✦ {hpToast.delta > 0 ? "SOIN" : "DÉGÂTS"} ✦
+            </div>
+            <div className={`text-sm font-bold ${hpToast.delta > 0 ? "text-green-300" : "text-red-300"}`}>
+              {hpToast.delta > 0 ? "+" : ""}{hpToast.delta} PV {hpToast.delta > 0 ? "❤️‍🩹" : "❤️"}
+            </div>
+          </div>
+        )}
+        {manaToast && (
+          <div className={`bg-black/85 backdrop-blur-md rounded-lg px-3.5 py-2.5 w-[200px] animate-in slide-in-from-right-5 fade-in duration-500 shadow-lg border-l-[3px] ${manaToast.delta > 0 ? "border-blue-400 shadow-blue-400/10" : "border-indigo-500 shadow-indigo-500/10"}`}>
+            <div
+              className="text-[9px] tracking-[2px] font-bold uppercase mb-0.5"
+              style={{ fontFamily: "'Cinzel', serif", color: manaToast.delta > 0 ? "#60a5fa" : "#818cf8" }}
+            >
+              ✦ {manaToast.delta > 0 ? "RÉCUPÉRATION" : "DÉPENSE"} ✦
+            </div>
+            <div className={`text-sm font-bold ${manaToast.delta > 0 ? "text-blue-300" : "text-indigo-300"}`}>
+              {manaToast.delta > 0 ? "+" : ""}{manaToast.delta} Mana 💧
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Level Up Modal */}
       {lvlModal && (

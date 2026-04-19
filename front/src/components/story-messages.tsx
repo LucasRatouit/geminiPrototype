@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { User, Sparkles } from "lucide-react";
 
-type AIMessage = { story: string; actions?: string[]; xp?: number };
+type AIMessage = { story: string; actions?: string[]; xp?: number; hp?: number; mana?: number };
 type MessageContent = string | AIMessage;
 interface Message {
   sender: "player" | "narrator";
@@ -28,6 +28,8 @@ const cleanNarrativeText = (text: string): string =>
     .replace(/\[LEVEL_UP\]/g, "")
     .replace(/\[QUETE_TERMINEE:[^\]]+\]/g, "")
     .replace(/\[XP:\d+\]/g, "")
+    .replace(/\[VIE:[+-]?\d+\]/g, "")
+    .replace(/\[MANA:[+-]?\d+\]/g, "")
     .replace(/\[THEME:[^\]]+\]/g, "")
     .replace(/\[REP:[^\]]+\]/g, "")
     .replace(/\[PAROLE:([^\]]+)\]([\s\S]*?)\[\/PAROLE\]/g, "$2")
