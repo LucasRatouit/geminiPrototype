@@ -11,6 +11,8 @@ import { GameInput } from "./components/game-input";
 import { StoryMessages } from "./components/story-messages";
 import { cleanNarrativeText } from "./components/story-messages";
 import { Sparkles, Zap } from "lucide-react";
+import { StatsTab } from "./components/stats-tab";
+import { SMETA } from "./lib/constants";
 
 // API Services
 import { fetchMessages, resetMessages } from "./api/messages";
@@ -27,18 +29,7 @@ interface Message {
 }
 type GenerationMode = "gemini" | "ollama-stream";
 
-const SMETA = [
-  { key: "strength" as const, label: "Force", icon: "⚔️", color: "#ef4444" },
-  {
-    key: "intelligence" as const,
-    label: "Intelligence",
-    icon: "🔮",
-    color: "#818cf8",
-  },
-  { key: "spirit" as const, label: "Esprit", icon: "✨", color: "#c084fc" },
-  { key: "agility" as const, label: "Agilité", icon: "🌬️", color: "#4ade80" },
-  { key: "charisma" as const, label: "Charisme", icon: "💬", color: "#fbbf24" },
-];
+
 
 const XP_MAX_PER_TURN = 25;
 
@@ -712,6 +703,8 @@ function App() {
               />
             </div>
           </>
+        ) : tab === "stats" ? (
+          <StatsTab stats={stats} />
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground italic text-center px-4">
             Développement en cours...
