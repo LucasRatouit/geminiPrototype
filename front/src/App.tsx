@@ -8,6 +8,7 @@ import { ModeSelector } from "@/components/game/ModeSelector";
 import { StatsTab } from "@/components/stats-tab";
 import { SpellsTab } from "@/components/spells-tab";
 import { BesaceTab } from "@/components/besace-tab";
+import { PersoTab } from "@/components/perso-tab";
 import { Toasts } from "@/components/ui/Toasts";
 import { LevelUpModal } from "@/components/ui/LevelUpModal";
 import { MagicParticles } from "@/components/effects/MagicParticles";
@@ -20,6 +21,7 @@ function App() {
     stats,
     spells, addSpell,
     inventory, addItem, removeItem,
+    npcs, addNPC, updateNPC,
     theme, tab, setTab,
     isFS, setIsFS,
     xpToast, hpToast, manaToast,
@@ -43,6 +45,7 @@ function App() {
     updateXP, updateHP, updateMana,
     spells, addSpell,
     inventory, addItem, removeItem,
+    npcs, addNPC, updateNPC,
   );
 
   useEffect(() => {
@@ -89,7 +92,7 @@ function App() {
         onReset={handleReset}
         onToggleFS={toggleFS}
         isFS={isFS}
-        npcsCount={0}
+        npcsCount={npcs.length}
       />
 
       <Toasts xpToast={xpToast} hpToast={hpToast} manaToast={manaToast} />
@@ -128,14 +131,9 @@ function App() {
           <SpellsTab spells={spells} stats={stats} />
         ) : tab === "inventory" ? (
           <BesaceTab inventory={inventory} stats={stats} />
-        ) : (
-          <div
-            className="flex-1 flex items-center justify-center text-parchment-dim/30 italic text-center px-4"
-            style={{ fontFamily: "'IM Fell English', serif" }}
-          >
-            Développement en cours...
-          </div>
-        )}
+        ) : tab === "npcs" ? (
+          <PersoTab npcs={npcs} />
+        ) : null}
       </div>
     </div>
   );

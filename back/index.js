@@ -47,6 +47,7 @@ const DEFAULT_CHARACTER = {
       effectValue: 15,
     },
   ],
+  npcs: [],
 };
 
 let characterState = { ...DEFAULT_CHARACTER };

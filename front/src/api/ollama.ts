@@ -2,6 +2,7 @@ import { API_URL } from "./config";
 import { getActionPrompt, getOpeningHookPrompt } from "../lib/game-prompts";
 import type { Spell } from "../lib/constants";
 import type { InventoryItem } from "../lib/constants";
+import type { NPC } from "../lib/constants";
 
 interface StreamCallbacks {
   onUpdate: (fullText: string) => void;
@@ -15,8 +16,9 @@ export const streamOpeningHook = ({
   onError,
   spells,
   inventory,
-}: StreamCallbacks & { spells?: Spell[]; inventory?: InventoryItem[] }) => {
-  const fullPrompt = getOpeningHookPrompt(spells, inventory);
+  npcs,
+}: StreamCallbacks & { spells?: Spell[]; inventory?: InventoryItem[]; npcs?: NPC[] }) => {
+  const fullPrompt = getOpeningHookPrompt(spells, inventory, npcs);
   const url = `${API_URL}/ai/generate/ollama/stream?prompt=${encodeURIComponent(fullPrompt)}`;
 
   const es = new EventSource(url);
@@ -56,9 +58,10 @@ export const streamOllamaResponse = (
   history: string[],
   spells: Spell[],
   inventory: InventoryItem[],
+  npcs: NPC[],
   { onUpdate, onDone, onError }: StreamCallbacks
 ) => {
-  const fullPrompt = getActionPrompt(userMessage, history, spells, inventory);
+  const fullPrompt = getActionPrompt(userMessage, history, spells, inventory, npcs);
   const url = `${API_URL}/ai/generate/ollama/stream?prompt=${encodeURIComponent(fullPrompt)}&userMessage=${encodeURIComponent(userMessage)}`;
   
   const es = new EventSource(url);

@@ -30,6 +30,8 @@ export const cleanNarrativeText = (text: string): string =>
     .replace(/\[XP:\d+\]/g, "")
     .replace(/\[VIE:[+-]?\d+\]/g, "")
     .replace(/\[MANA:[+-]?\d+\]/g, "")
+    .replace(/\[NOUVEAU_PERSO:[^\]]+\]/g, "")
+    .replace(/\[MAJ_PERSO:[^\]]+\]/g, "")
     .replace(/\[THEME:[^\]]+\]/g, "")
     .replace(/\[REP:[^\]]+\]/g, "")
     .replace(/\[PAROLE:([^\]]+)\]([\s\S]*?)\[\/PAROLE\]/g, "$2")

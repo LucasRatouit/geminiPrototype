@@ -20,6 +20,13 @@ export interface InventoryItem {
   effectValue: number;
 }
 
+export interface NPC {
+  name: string;
+  description: string;
+  role: string;
+  relation: "allié" | "neutre" | "ennemi" | "mentor" | "inconnu";
+}
+
 export const BASE_INVENTORY: InventoryItem[] = [
   {
     name: "Potion de Soin",
@@ -49,6 +56,18 @@ export const SMETA = [
   { key: "agility" as const, label: "Agilité", icon: "🌬️", color: "#4ade80" },
   { key: "charisma" as const, label: "Charisme", icon: "💬", color: "#fbbf24" },
 ];
+
+export const NPC_LIMIT = 15;
+
+export const BASE_NPCS: NPC[] = [];
+
+export const RELATION_META: Record<NPC["relation"], { label: string; icon: string; color: string; glow: string }> = {
+  allié: { label: "Allié", icon: "🛡️", color: "#4ade80", glow: "rgba(74,222,128,0.3)" },
+  neutre: { label: "Neutre", icon: "⚖️", color: "#9ca3af", glow: "rgba(156,163,175,0.3)" },
+  ennemi: { label: "Ennemi", icon: "⚔️", color: "#ef4444", glow: "rgba(239,68,68,0.3)" },
+  mentor: { label: "Mentor", icon: "📖", color: "#c084fc", glow: "rgba(192,132,252,0.3)" },
+  inconnu: { label: "Inconnu", icon: "❓", color: "#fbbf24", glow: "rgba(251,191,36,0.3)" },
+};
 
 export const RANK_COLORS: Record<string, string> = {
   F: "#9ca3af",

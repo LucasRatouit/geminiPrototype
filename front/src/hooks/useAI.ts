@@ -1,10 +1,38 @@
 import { useState, useCallback, useRef } from "react";
 import { fetchGeminiResponse, fetchOpeningHook } from "@/api/gemini";
 import { streamOllamaResponse, streamOpeningHook } from "@/api/ollama";
-import { parseNewSpellsFromText, parseNewItemsFromText, parseUsedItemsFromText } from "@/lib/game-prompts";
+import { parseNewSpellsFromText, parseNewItemsFromText, parseUsedItemsFromText, parseNewNPCsFromText, parseUpdatedNPCsFromText, type NPCUpdate } from "@/lib/game-prompts";
 import type { Message, MessageContent, AIMessage } from "./useGameState";
 import type { Spell } from "@/lib/constants";
 import type { InventoryItem } from "@/lib/constants";
+import type { NPC } from "@/lib/constants";
+
+const VALID_RELATIONS = ["allié", "neutre", "ennemi", "mentor", "inconnu"];
+const NPC_DEFAULTS = { role: "Inconnu", relation: "inconnu" as NPC["relation"], description: "" };
+
+function extractNPCsFromJSON(data: AIMessage): NPC[] {
+  if (!data.personnages || !Array.isArray(data.personnages)) return [];
+  return data.personnages
+    .filter((p) => p && typeof p.name === "string")
+    .map((p) => ({
+      name: p.name || "???",
+      role: (typeof p.role === "string" && p.role) || NPC_DEFAULTS.role,
+      relation: VALID_RELATIONS.includes(typeof p.relation === "string" ? p.relation.toLowerCase() : "") ? (p.relation as NPC["relation"]) : NPC_DEFAULTS.relation,
+      description: (typeof p.description === "string" && p.description) || NPC_DEFAULTS.description,
+    }));
+}
+
+function extractUpdatedNPCsFromJSON(data: AIMessage): NPCUpdate[] {
+  if (!data.majPersonnages || !Array.isArray(data.majPersonnages)) return [];
+  return data.majPersonnages
+    .filter((p) => p && typeof p.name === "string")
+    .map((p) => ({
+      name: p.name,
+      role: typeof p.role === "string" ? p.role : undefined,
+      relation: VALID_RELATIONS.includes(typeof p.relation === "string" ? p.relation.toLowerCase() : "") ? (p.relation as NPC["relation"]) : undefined,
+      description: typeof p.description === "string" ? p.description : undefined,
+    }));
+}
 
 export type GenerationMode = "gemini" | "ollama-stream";
 
@@ -55,6 +83,9 @@ export function useAI(
   inventory: InventoryItem[],
   addItem: (item: InventoryItem) => void,
   removeItem: (name: string) => void,
+  npcs: NPC[],
+  addNPC: (npc: NPC) => void,
+  updateNPC: (name: string, updates: { role?: string; relation?: NPC["relation"]; description?: string }) => void,
 ) {
   const [isPrompting, setIsPrompting] = useState(false);
   const [prompt, setPrompt] = useState("");
@@ -72,6 +103,13 @@ export function useAI(
   addItemRef.current = addItem;
   const removeItemRef = useRef(removeItem);
   removeItemRef.current = removeItem;
+
+  const npcsRef = useRef(npcs);
+  npcsRef.current = npcs;
+  const addNPCRef = useRef(addNPC);
+  addNPCRef.current = addNPC;
+  const updateNPCRef = useRef(updateNPC);
+  updateNPCRef.current = updateNPC;
 
   const processXpFromResponse = useCallback((text: string) => {
     const xpResults = parseXpFromText(text);
@@ -107,6 +145,20 @@ export function useAI(
     }
   }, []);
 
+  const processNewNPCsFromResponse = useCallback((text: string) => {
+    const newNpcs = parseNewNPCsFromText(text);
+    for (const npc of newNpcs) {
+      addNPCRef.current(npc);
+    }
+  }, []);
+
+  const processUpdatedNPCsFromResponse = useCallback((text: string) => {
+    const updates = parseUpdatedNPCsFromText(text);
+    for (const update of updates) {
+      updateNPCRef.current(update.name, update);
+    }
+  }, []);
+
   const generateOpeningHook = useCallback(async () => {
     setIsPrompting(true);
 
@@ -124,6 +176,14 @@ export function useAI(
             processNewSpellsFromResponse(respText);
             processNewItemsFromResponse(respText);
             processUsedItemsFromResponse(respText);
+            processNewNPCsFromResponse(respText);
+            processUpdatedNPCsFromResponse(respText);
+            if (typeof data.response === "object" && data.response !== null) {
+              const jsonNpcs = extractNPCsFromJSON(data.response as AIMessage);
+              for (const npc of jsonNpcs) addNPCRef.current(npc);
+              const jsonUpdates = extractUpdatedNPCsFromJSON(data.response as AIMessage);
+              for (const u of jsonUpdates) updateNPCRef.current(u.name, u);
+            }
           }
           setIsPrompting(false);
           hookGeneratedRef.current = true;
@@ -136,13 +196,21 @@ export function useAI(
       });
     } else {
       try {
-        const hook = await fetchOpeningHook(spellsRef.current, inventoryRef.current);
+        const hook = await fetchOpeningHook(spellsRef.current, inventoryRef.current, npcsRef.current);
         if (hook) {
           setMessageList((prev) => [...prev, { sender: "narrator", content: hook }]);
           const rawText = typeof hook === "string" ? hook : (hook as AIMessage).story || "";
           processNewSpellsFromResponse(rawText);
           processNewItemsFromResponse(rawText);
           processUsedItemsFromResponse(rawText);
+          processNewNPCsFromResponse(rawText);
+          processUpdatedNPCsFromResponse(rawText);
+          if (typeof hook === "object" && hook !== null) {
+            const jsonNpcs = extractNPCsFromJSON(hook as AIMessage);
+            for (const npc of jsonNpcs) addNPCRef.current(npc);
+            const jsonUpdates = extractUpdatedNPCsFromJSON(hook as AIMessage);
+            for (const u of jsonUpdates) updateNPCRef.current(u.name, u);
+          }
         }
       } catch {
         setMessageList((prev) => [...prev, { sender: "narrator", content: "Une perturbation magique empêche la vision de se former..." }]);
@@ -151,7 +219,7 @@ export function useAI(
         hookGeneratedRef.current = true;
       }
     }
-  }, [generationMode, updateLastMessage, setMessageList, processNewSpellsFromResponse, processNewItemsFromResponse, processUsedItemsFromResponse]);
+  }, [generationMode, updateLastMessage, setMessageList, processNewSpellsFromResponse, processNewItemsFromResponse, processUsedItemsFromResponse, processNewNPCsFromResponse, processUpdatedNPCsFromResponse]);
 
   const generateGemini = useCallback(async () => {
     if (!prompt) return;
@@ -162,7 +230,7 @@ export function useAI(
 
     try {
       const history = messageList.map((m) => extractText(m.content));
-      const text = await fetchGeminiResponse(userMessage, history, spellsRef.current, inventoryRef.current);
+      const text = await fetchGeminiResponse(userMessage, history, spellsRef.current, inventoryRef.current, npcsRef.current);
       if (text) {
         setMessageList((prev) => [...prev, { sender: "narrator", content: text }]);
         const rawText = typeof text === "string" ? text : (text as AIMessage).story || "";
@@ -171,6 +239,8 @@ export function useAI(
         processNewSpellsFromResponse(rawText);
         processNewItemsFromResponse(rawText);
         processUsedItemsFromResponse(rawText);
+        processNewNPCsFromResponse(rawText);
+        processUpdatedNPCsFromResponse(rawText);
         if (typeof text === "object" && text !== null) {
           const xpVal = (text as AIMessage).xp;
           if (xpVal && xpVal > 0) updateXP(Math.min(xpVal, XP_MAX_PER_TURN));
@@ -178,6 +248,10 @@ export function useAI(
           if (hpVal) updateHP(hpVal);
           const manaVal = (text as AIMessage).mana;
           if (manaVal) updateMana(manaVal);
+          const jsonNpcs = extractNPCsFromJSON(text as AIMessage);
+          for (const npc of jsonNpcs) addNPCRef.current(npc);
+          const jsonUpdates = extractUpdatedNPCsFromJSON(text as AIMessage);
+          for (const u of jsonUpdates) updateNPCRef.current(u.name, u);
         }
       }
     } catch {
@@ -185,7 +259,7 @@ export function useAI(
     } finally {
       setIsPrompting(false);
     }
-  }, [prompt, messageList, setMessageList, processXpFromResponse, processHpManaFromResponse, processNewSpellsFromResponse, processNewItemsFromResponse, processUsedItemsFromResponse, updateXP, updateHP, updateMana]);
+  }, [prompt, messageList, setMessageList, processXpFromResponse, processHpManaFromResponse, processNewSpellsFromResponse, processNewItemsFromResponse, processUsedItemsFromResponse, processNewNPCsFromResponse, processUpdatedNPCsFromResponse, updateXP, updateHP, updateMana]);
 
   const generateOllamaStream = useCallback(async () => {
     if (!prompt || isPrompting) return;
@@ -202,7 +276,7 @@ export function useAI(
 
     if (eventSourceRef.current) eventSourceRef.current.close();
 
-    eventSourceRef.current = streamOllamaResponse(userMessage, history, spellsRef.current, inventoryRef.current, {
+    eventSourceRef.current = streamOllamaResponse(userMessage, history, spellsRef.current, inventoryRef.current, npcsRef.current, {
       onUpdate: (fullText) => updateLastMessage(fullText),
       onDone: (data) => {
         if (data.response) {
@@ -216,6 +290,8 @@ export function useAI(
           processNewSpellsFromResponse(responseText);
           processNewItemsFromResponse(responseText);
           processUsedItemsFromResponse(responseText);
+          processNewNPCsFromResponse(responseText);
+          processUpdatedNPCsFromResponse(responseText);
           if (
             typeof data.response === "object" &&
             data.response !== null
@@ -226,6 +302,10 @@ export function useAI(
             if (hpVal) updateHP(hpVal);
             const manaVal = data.response.mana;
             if (manaVal) updateMana(manaVal);
+            const jsonNpcs = extractNPCsFromJSON(data.response as AIMessage);
+            for (const npc of jsonNpcs) addNPCRef.current(npc);
+            const jsonUpdates = extractUpdatedNPCsFromJSON(data.response as AIMessage);
+            for (const u of jsonUpdates) updateNPCRef.current(u.name, u);
           }
         }
         setIsPrompting(false);
@@ -235,7 +315,7 @@ export function useAI(
         updateLastMessage("L'oracle s'est déconnecté...");
       },
     });
-  }, [prompt, isPrompting, messageList, setMessageList, updateLastMessage, processXpFromResponse, processHpManaFromResponse, processNewSpellsFromResponse, processNewItemsFromResponse, processUsedItemsFromResponse, updateXP, updateHP, updateMana]);
+  }, [prompt, isPrompting, messageList, setMessageList, updateLastMessage, processXpFromResponse, processHpManaFromResponse, processNewSpellsFromResponse, processNewItemsFromResponse, processUsedItemsFromResponse, processNewNPCsFromResponse, processUpdatedNPCsFromResponse, updateXP, updateHP, updateMana]);
 
   const handleAction = useCallback(() => {
     if (generationMode === "ollama-stream") {

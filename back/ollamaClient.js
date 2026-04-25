@@ -13,11 +13,13 @@ const systemInstruction = `
     2. N'ajoute AUCUN texte avant ou après le JSON (pas de 'Voici le JSON', pas de markdown).
     3. Le JSON doit suivre ce format exact :
     {
-      "story": "Texte narratif ici. Utilise \\n pour les sauts de ligne.",
+      "story": "Texte narratif ici. Utilise \\n pour les sauts de ligne. Inclus les tags [NOUVEAU_SORT:...], [NOUVEAU_OBJET:...], [OBJET_UTILISE:...], [NOUVEAU_PERSO:...], [MAJ_PERSO:...] directement dans le texte narratif si applicable.",
       "actions": [],
       "xp": 0,
       "hp": 0,
-      "mana": 0
+      "mana": 0,
+      "personnages": [],
+      "majPersonnages": []
     }
 
     SORTS D'ÉLYSIA :
@@ -51,6 +53,12 @@ const systemInstruction = `
     - L'effet de l'objet est automatiquement appliqué via les tags [VIE:+montant] ou [MANA:+montant] existants. Par exemple, une Potion de Soin donne [VIE:+10], une Potion de Mana donne [MANA:+15].
     - Si le joueur tente d'utiliser un objet qu'il ne possède pas, décris une recherche vaine dans la besace.
     - Si l'histoire justifie qu'Élysia trouve ou reçoive un nouvel objet (butin, récompense, découverte), inclus le tag [NOUVEAU_OBJET:Nom|TypeEffet|Valeur|Description] dans le champ "story". TypeEffet est "hp" ou "mana". Exemple : [NOUVEAU_OBJET:Fiole de Lune|mana|20|Un liquide argenté qui restaura l'énergie arcanique avec une douceur surnaturelle.]. N'accorde un nouvel objet que pour un événement narratif significatif.
+
+    PERSONNAGES :
+    - OBLIGATOIRE : Chaque fois qu'un personnage nommé apparaît pour la première fois dans l'histoire, inclus IMMÉDIATEMENT le tag [NOUVEAU_PERSO:...] dans le champ "story" ET ajoute une entrée dans le tableau "personnages" du JSON. Tu peux utiliser des formats partiels : [NOUVEAU_PERSO:Nom] si tu connais juste le nom, [NOUVEAU_PERSO:Nom|Role], [NOUVEAU_PERSO:Nom|Role|Relation], ou le format complet [NOUVEAU_PERSO:Nom|Role|Relation|Description]. Si le nom est inconnu, utilise [NOUVEAU_PERSO:???|Role|Relation|Description]. N'attends PAS qu'un personnage soit « significatif » — enregistre-le dès sa première apparition.
+    - Si un personnage déjà connu révèle de nouvelles informations, inclus le tag [MAJ_PERSO:Nom|NouveauRole|NouvelleRelation|NouvelleDescription] (ou partiel : [MAJ_PERSO:Nom|NouvelleDescription]) dans le champ "story" ET ajoute une entrée dans le tableau "majPersonnages" du JSON. Les champs fournis remplacent les anciens.
+    - Format du tableau "personnages" : [{"name": "Nom (obligatoire, utiliser \"???\" si inconnu)", "role": "Role (optionnel)", "relation": "allié|neutre|ennemi|mentor|inconnu (optionnel)", "description": "Description (optionnelle)"}]
+    - Format du tableau "majPersonnages" : [{"name": "Nom", "role": "Nouveau role (optionnel)", "relation": "allié|neutre|ennemi|mentor|inconnu (optionnel)", "description": "Nouvelle description (optionnel)"}]
   `;
 
   try {
@@ -97,7 +105,9 @@ const systemInstruction = `
       actions: [],
       xp: 0,
       hp: 0,
-      mana: 0
+      mana: 0,
+      personnages: [],
+      majPersonnages: []
     };
   }
 }

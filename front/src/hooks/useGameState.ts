@@ -1,10 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { fetchMessages, resetMessages } from "@/api/messages";
 import { fetchCharacter, updateCharacter, resetCharacter } from "@/api/character";
-import { BASE_SPELLS, BASE_INVENTORY, type Spell, type InventoryItem } from "@/lib/constants";
+import { BASE_SPELLS, BASE_INVENTORY, BASE_NPCS, type Spell, type InventoryItem, type NPC } from "@/lib/constants";
 
 export type Sender = "player" | "narrator";
-export type AIMessage = { story: string; actions?: string[]; xp?: number; hp?: number; mana?: number };
+export type AIMessage = { story: string; actions?: string[]; xp?: number; hp?: number; mana?: number; personnages?: { name: string; role?: string; relation?: string; description?: string }[]; majPersonnages?: { name: string; role?: string; relation?: string; description?: string }[] };
 export type MessageContent = string | AIMessage;
 
 export interface Message {
@@ -77,6 +77,7 @@ export function useGameState() {
   const [stats, setStats] = useState<GameStats>(DEFAULT_STATS);
   const [spells, setSpells] = useState<Spell[]>(BASE_SPELLS);
   const [inventory, setInventory] = useState<InventoryItem[]>(BASE_INVENTORY);
+  const [npcs, setNpcs] = useState<NPC[]>(BASE_NPCS);
   const [theme, setTheme] = useState<GameTheme>(DEFAULT_THEME);
   const [tab, setTab] = useState("game");
   const [isFS, setIsFS] = useState(false);
@@ -116,6 +117,9 @@ export function useGameState() {
       }
       if (character && (character as GameStats & { inventory?: InventoryItem[] }).inventory) {
         setInventory((character as GameStats & { inventory?: InventoryItem[] }).inventory!);
+      }
+      if (character && (character as GameStats & { npcs?: NPC[] }).npcs) {
+        setNpcs((character as GameStats & { npcs?: NPC[] }).npcs!);
       }
       return messages.length > 0;
     } catch (error) {
@@ -214,6 +218,42 @@ export function useGameState() {
     });
   }, []);
 
+  const addNPC = useCallback((npc: NPC) => {
+    setNpcs((prev) => {
+      const existingIdx = prev.findIndex((n) => n.name === npc.name);
+      if (existingIdx !== -1) {
+        const updated = { ...prev[existingIdx] };
+        if (npc.name && npc.name !== "???" && updated.name === "???") updated.name = npc.name;
+        if (npc.role && npc.role !== "Inconnu") updated.role = npc.role;
+        if (npc.relation && npc.relation !== "inconnu") updated.relation = npc.relation;
+        if (npc.description) updated.description = npc.description;
+        const next = [...prev];
+        next[existingIdx] = updated;
+        syncStatsToServer({ ...statsRef.current, npcs: next } as GameStats & { npcs: NPC[] });
+        return next;
+      }
+      const next = [...prev, npc];
+      syncStatsToServer({ ...statsRef.current, npcs: next } as GameStats & { npcs: NPC[] });
+      return next;
+    });
+  }, []);
+
+  const updateNPC = useCallback((name: string, updates: { role?: string; relation?: NPC["relation"]; description?: string }) => {
+    setNpcs((prev) => {
+      const idx = prev.findIndex((n) => n.name === name);
+      if (idx === -1) return prev;
+      const next = [...prev];
+      next[idx] = {
+        ...next[idx],
+        ...(updates.role && updates.role !== "Inconnu" ? { role: updates.role } : {}),
+        ...(updates.relation ? { relation: updates.relation } : {}),
+        ...(updates.description ? { description: updates.description } : {}),
+      };
+      syncStatsToServer({ ...statsRef.current, npcs: next } as GameStats & { npcs: NPC[] });
+      return next;
+    });
+  }, []);
+
   const doLevelAll = useCallback(() => {
     setStats((prev) => {
       const next = {
@@ -275,6 +315,7 @@ export function useGameState() {
     }
     setSpells(BASE_SPELLS);
     setInventory(BASE_INVENTORY);
+    setNpcs(BASE_NPCS);
     setLvlModal(false);
     setLvlMode(null);
     setXpToast(null);
@@ -288,6 +329,7 @@ export function useGameState() {
     stats, setStats,
     spells, addSpell,
     inventory, addItem, removeItem,
+    npcs, addNPC, updateNPC,
     theme, setTheme,
     tab, setTab,
     isFS, setIsFS,
