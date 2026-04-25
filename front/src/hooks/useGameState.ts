@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { fetchMessages, resetMessages } from "@/api/messages";
 import { fetchCharacter, updateCharacter, resetCharacter } from "@/api/character";
+import { BASE_SPELLS, type Spell } from "@/lib/constants";
 
 export type Sender = "player" | "narrator";
 export type AIMessage = { story: string; actions?: string[]; xp?: number; hp?: number; mana?: number };
@@ -74,6 +75,7 @@ const syncStatsToServer = (stats: GameStats) => {
 export function useGameState() {
   const [messageList, setMessageList] = useState<Message[]>([]);
   const [stats, setStats] = useState<GameStats>(DEFAULT_STATS);
+  const [spells, setSpells] = useState<Spell[]>(BASE_SPELLS);
   const [theme, setTheme] = useState<GameTheme>(DEFAULT_THEME);
   const [tab, setTab] = useState("game");
   const [isFS, setIsFS] = useState(false);
@@ -107,6 +109,9 @@ export function useGameState() {
       if (character) {
         setStats(character);
         prevLevelRef.current = character.level;
+      }
+      if (character && (character as GameStats & { spells?: Spell[] }).spells) {
+        setSpells((character as GameStats & { spells?: Spell[] }).spells!);
       }
       return messages.length > 0;
     } catch (error) {
@@ -175,6 +180,18 @@ export function useGameState() {
     });
   }, []);
 
+  const statsRef = useRef(stats);
+  useEffect(() => { statsRef.current = stats; });
+
+  const addSpell = useCallback((spell: Spell) => {
+    setSpells((prev) => {
+      if (prev.some((s) => s.name === spell.name)) return prev;
+      const next = [...prev, spell];
+      syncStatsToServer({ ...statsRef.current, spells: next } as GameStats & { spells: Spell[] });
+      return next;
+    });
+  }, []);
+
   const doLevelAll = useCallback(() => {
     setStats((prev) => {
       const next = {
@@ -234,6 +251,7 @@ export function useGameState() {
       setStats(DEFAULT_STATS);
       prevLevelRef.current = DEFAULT_STATS.level;
     }
+    setSpells(BASE_SPELLS);
     setLvlModal(false);
     setLvlMode(null);
     setXpToast(null);
@@ -245,6 +263,7 @@ export function useGameState() {
   return {
     messageList, setMessageList,
     stats, setStats,
+    spells, addSpell,
     theme, setTheme,
     tab, setTab,
     isFS, setIsFS,

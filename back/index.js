@@ -26,6 +26,13 @@ const DEFAULT_CHARACTER = {
   spirit: 10,
   agility: 9,
   charisma: 11,
+  spells: [
+    {
+      name: "Éclat Divin",
+      description: "Un éclat de lumière condensée issu de l'aura d'Élysia. Rapide et précis, il frappe la cible et peut l'éblouir brièvement.",
+      manaCost: 10,
+    },
+  ],
 };
 
 let characterState = { ...DEFAULT_CHARACTER };

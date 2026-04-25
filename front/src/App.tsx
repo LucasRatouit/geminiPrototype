@@ -6,6 +6,7 @@ import { StoryMessages } from "@/components/game/StoryMessages";
 import { GameInput } from "@/components/game/GameInput";
 import { ModeSelector } from "@/components/game/ModeSelector";
 import { StatsTab } from "@/components/stats-tab";
+import { SpellsTab } from "@/components/spells-tab";
 import { Toasts } from "@/components/ui/Toasts";
 import { LevelUpModal } from "@/components/ui/LevelUpModal";
 import { MagicParticles } from "@/components/effects/MagicParticles";
@@ -16,6 +17,7 @@ function App() {
   const {
     messageList, setMessageList,
     stats,
+    spells, addSpell,
     theme, tab, setTab,
     isFS, setIsFS,
     xpToast, hpToast, manaToast,
@@ -37,6 +39,7 @@ function App() {
     setMessageList,
     updateLastMessage,
     updateXP, updateHP, updateMana,
+    spells, addSpell,
   );
 
   useEffect(() => {
@@ -118,6 +121,8 @@ function App() {
           </>
         ) : tab === "stats" ? (
           <StatsTab stats={stats} />
+        ) : tab === "spells" ? (
+          <SpellsTab spells={spells} stats={stats} />
         ) : (
           <div
             className="flex-1 flex items-center justify-center text-parchment-dim/30 italic text-center px-4"

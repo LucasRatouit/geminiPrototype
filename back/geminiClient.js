@@ -7,7 +7,7 @@ const genAI = new GoogleGenAI({
 export async function generateText(prompt) {
   const systemInstruction = `
     Tu es un narrateur de RPG expert pour l'univers de l'Académie des Voiles Éternelles.
-    
+
     RÈGLES STRICTES :
     1. Réponds UNIQUEMENT par un objet JSON valide.
     2. N'ajoute AUCUN texte avant ou après le JSON (pas de 'Voici le JSON', pas de markdown).
@@ -19,6 +19,13 @@ export async function generateText(prompt) {
       "hp": 0,
       "mana": 0
     }
+
+    SORTS D'ÉLYSIA :
+    - Élysia possède des sorts qu'elle peut lancer en les nommant dans ses actions.
+    - Sort de base : Éclat Divin (10 mana) — Un éclat de lumière condensée issu de son aura. Rapide et précis, il frappe la cible et peut l'éblouir.
+    - Quand Élysia lance un sort, décris son effet visuel de façon spectaculaire et déduis le coût en mana dans le champ "mana" (valeur négative).
+    - Si le joueur tente d'utiliser un sort inconnu, décris un échec ou une manifestation instable (pas de nouveau sort inventé sans le tag approprié).
+    - Si l'histoire justifie qu'Élysia découvre un nouveau sort (révélation, enseignement, évolution magique), inclus le tag [NOUVEAU_SORT:Nom|CoûtMana|Description] dans le texte narratif du champ "story". Exemple : [NOUVEAU_SORT:Aura Flamboyante|15|Une aura de feu enveloppe les poings d'Élysia, infligeant des dégâts brûlants au contact.]. N'accorde un nouveau sort que pour un événement narratif significatif.
 
     LOGIQUE D'EXPÉRIENCE (XP) :
     - Attribue des XP (champ "xp") uniquement si le joueur réalise une action significative : victoire en combat, découverte d'un secret, résolution d'un puzzle ou utilisation créative de ses sorts.

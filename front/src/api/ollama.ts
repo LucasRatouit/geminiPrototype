@@ -1,5 +1,6 @@
 import { API_URL } from "./config";
 import { getActionPrompt, getOpeningHookPrompt } from "../lib/game-prompts";
+import type { Spell } from "../lib/constants";
 
 interface StreamCallbacks {
   onUpdate: (fullText: string) => void;
@@ -7,15 +8,13 @@ interface StreamCallbacks {
   onError: (err: any) => void;
 }
 
-/**
- * Génère la phrase d'accroche narrative d'ouverture via Ollama en streaming.
- */
 export const streamOpeningHook = ({
   onUpdate,
   onDone,
   onError,
-}: StreamCallbacks) => {
-  const fullPrompt = getOpeningHookPrompt();
+  spells,
+}: StreamCallbacks & { spells?: Spell[] }) => {
+  const fullPrompt = getOpeningHookPrompt(spells);
   const url = `${API_URL}/ai/generate/ollama/stream?prompt=${encodeURIComponent(fullPrompt)}`;
 
   const es = new EventSource(url);
@@ -50,16 +49,13 @@ export const streamOpeningHook = ({
   return es;
 };
 
-/**
- * Appel en mode streaming via l'API Ollama (SSE)
- * Gère l'accumulation des tokens pour simplifier l'usage côté composant.
- */
 export const streamOllamaResponse = (
   userMessage: string,
   history: string[],
+  spells: Spell[],
   { onUpdate, onDone, onError }: StreamCallbacks
 ) => {
-  const fullPrompt = getActionPrompt(userMessage, history);
+  const fullPrompt = getActionPrompt(userMessage, history, spells);
   const url = `${API_URL}/ai/generate/ollama/stream?prompt=${encodeURIComponent(fullPrompt)}&userMessage=${encodeURIComponent(userMessage)}`;
   
   const es = new EventSource(url);

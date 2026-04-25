@@ -1,3 +1,18 @@
+export interface Spell {
+  name: string;
+  description: string;
+  manaCost: number;
+}
+
+export const BASE_SPELLS: Spell[] = [
+  {
+    name: "Éclat Divin",
+    description:
+      "Un éclat de lumière condensée issu de l'aura d'Élysia. Rapide et précis, il frappe la cible et peut l'éblouir brièvement.",
+    manaCost: 10,
+  },
+];
+
 export const SMETA = [
   { key: "strength" as const, label: "Force", icon: "⚔️", color: "#ef4444" },
   {
