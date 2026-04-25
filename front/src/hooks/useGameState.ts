@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { fetchMessages, resetMessages } from "@/api/messages";
 import { fetchCharacter, updateCharacter, resetCharacter } from "@/api/character";
-import { BASE_SPELLS, type Spell } from "@/lib/constants";
+import { BASE_SPELLS, BASE_INVENTORY, type Spell, type InventoryItem } from "@/lib/constants";
 
 export type Sender = "player" | "narrator";
 export type AIMessage = { story: string; actions?: string[]; xp?: number; hp?: number; mana?: number };
@@ -76,6 +76,7 @@ export function useGameState() {
   const [messageList, setMessageList] = useState<Message[]>([]);
   const [stats, setStats] = useState<GameStats>(DEFAULT_STATS);
   const [spells, setSpells] = useState<Spell[]>(BASE_SPELLS);
+  const [inventory, setInventory] = useState<InventoryItem[]>(BASE_INVENTORY);
   const [theme, setTheme] = useState<GameTheme>(DEFAULT_THEME);
   const [tab, setTab] = useState("game");
   const [isFS, setIsFS] = useState(false);
@@ -112,6 +113,9 @@ export function useGameState() {
       }
       if (character && (character as GameStats & { spells?: Spell[] }).spells) {
         setSpells((character as GameStats & { spells?: Spell[] }).spells!);
+      }
+      if (character && (character as GameStats & { inventory?: InventoryItem[] }).inventory) {
+        setInventory((character as GameStats & { inventory?: InventoryItem[] }).inventory!);
       }
       return messages.length > 0;
     } catch (error) {
@@ -192,6 +196,24 @@ export function useGameState() {
     });
   }, []);
 
+  const addItem = useCallback((item: InventoryItem) => {
+    setInventory((prev) => {
+      if (prev.some((i) => i.name === item.name)) return prev;
+      const next = [...prev, item];
+      syncStatsToServer({ ...statsRef.current, inventory: next } as GameStats & { inventory: InventoryItem[] });
+      return next;
+    });
+  }, []);
+
+  const removeItem = useCallback((name: string) => {
+    setInventory((prev) => {
+      const next = prev.filter((i) => i.name !== name);
+      if (next.length === prev.length) return prev;
+      syncStatsToServer({ ...statsRef.current, inventory: next } as GameStats & { inventory: InventoryItem[] });
+      return next;
+    });
+  }, []);
+
   const doLevelAll = useCallback(() => {
     setStats((prev) => {
       const next = {
@@ -252,6 +274,7 @@ export function useGameState() {
       prevLevelRef.current = DEFAULT_STATS.level;
     }
     setSpells(BASE_SPELLS);
+    setInventory(BASE_INVENTORY);
     setLvlModal(false);
     setLvlMode(null);
     setXpToast(null);
@@ -264,6 +287,7 @@ export function useGameState() {
     messageList, setMessageList,
     stats, setStats,
     spells, addSpell,
+    inventory, addItem, removeItem,
     theme, setTheme,
     tab, setTab,
     isFS, setIsFS,

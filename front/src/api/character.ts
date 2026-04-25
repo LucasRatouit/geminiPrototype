@@ -1,6 +1,6 @@
 import axios from "axios";
 import { API_URL } from "./config";
-import type { Spell } from "@/lib/constants";
+import type { Spell, InventoryItem } from "@/lib/constants";
 
 export interface CharacterData {
   rank: string;
@@ -17,6 +17,7 @@ export interface CharacterData {
   agility: number;
   charisma: number;
   spells?: Spell[];
+  inventory?: InventoryItem[];
 }
 
 export const fetchCharacter = async (): Promise<CharacterData> => {

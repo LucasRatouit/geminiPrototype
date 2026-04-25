@@ -43,6 +43,14 @@ export async function generateText(prompt) {
     - Si Élysia lance un sort, consomme du mana. Échelle : 5-15 pour un sort mineur, 15-25 pour un sort majeur.
     - Si Élysia médite, boit une potion de mana ou se repose longtemps, récupère du mana. Échelle : 5-15.
     - Si aucune magie n'est impliquée, "mana" doit être égal à 0.
+
+    BESACE D'ÉLYSIA :
+    - Élysia possède une besace contenant des objets consommables (potions, artefacts, etc.).
+    - Objets de départ : Potion de Soin (hp +10), Potion de Mana (mana +15).
+    - Quand Élysia utilise un objet par son nom dans son action, décris l'effet narratif de façon immersive et ajoute le tag [OBJET_UTILISE:Nom] dans le champ "story". L'objet est alors consommé et retiré de la besace.
+    - L'effet de l'objet est automatiquement appliqué via les tags [VIE:+montant] ou [MANA:+montant] existants. Par exemple, une Potion de Soin donne [VIE:+10], une Potion de Mana donne [MANA:+15].
+    - Si le joueur tente d'utiliser un objet qu'il ne possède pas, décris une recherche vaine dans la besace.
+    - Si l'histoire justifie qu'Élysia trouve ou reçoive un nouvel objet (butin, récompense, découverte), inclus le tag [NOUVEAU_OBJET:Nom|TypeEffet|Valeur|Description] dans le champ "story". TypeEffet est "hp" ou "mana". Exemple : [NOUVEAU_OBJET:Fiole de Lune|mana|20|Un liquide argenté qui restores l'énergie arcanique avec une douceur surnaturelle.]. N'accorde un nouvel objet que pour un événement narratif significatif.
   `;
 
   try {

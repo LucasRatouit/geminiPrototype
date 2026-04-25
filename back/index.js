@@ -33,6 +33,20 @@ const DEFAULT_CHARACTER = {
       manaCost: 10,
     },
   ],
+  inventory: [
+    {
+      name: "Potion de Soin",
+      description: "Une fiole rougeâtre contenant un liquide viscide qui restaure la vitalité.",
+      effectType: "hp",
+      effectValue: 10,
+    },
+    {
+      name: "Potion de Mana",
+      description: "Une fiole bleuâtre dont le contenu iridescent régénère l'énergie arcanique.",
+      effectType: "mana",
+      effectValue: 15,
+    },
+  ],
 };
 
 let characterState = { ...DEFAULT_CHARACTER };

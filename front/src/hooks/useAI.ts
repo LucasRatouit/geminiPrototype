@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef } from "react";
 import { fetchGeminiResponse, fetchOpeningHook } from "@/api/gemini";
 import { streamOllamaResponse, streamOpeningHook } from "@/api/ollama";
-import { parseNewSpellsFromText } from "@/lib/game-prompts";
+import { parseNewSpellsFromText, parseNewItemsFromText, parseUsedItemsFromText } from "@/lib/game-prompts";
 import type { Message, MessageContent, AIMessage } from "./useGameState";
 import type { Spell } from "@/lib/constants";
+import type { InventoryItem } from "@/lib/constants";
 
 export type GenerationMode = "gemini" | "ollama-stream";
 
@@ -51,6 +52,9 @@ export function useAI(
   updateMana: (delta: number) => void,
   spells: Spell[],
   addSpell: (spell: Spell) => void,
+  inventory: InventoryItem[],
+  addItem: (item: InventoryItem) => void,
+  removeItem: (name: string) => void,
 ) {
   const [isPrompting, setIsPrompting] = useState(false);
   const [prompt, setPrompt] = useState("");
@@ -61,6 +65,13 @@ export function useAI(
   spellsRef.current = spells;
   const addSpellRef = useRef(addSpell);
   addSpellRef.current = addSpell;
+
+  const inventoryRef = useRef(inventory);
+  inventoryRef.current = inventory;
+  const addItemRef = useRef(addItem);
+  addItemRef.current = addItem;
+  const removeItemRef = useRef(removeItem);
+  removeItemRef.current = removeItem;
 
   const processXpFromResponse = useCallback((text: string) => {
     const xpResults = parseXpFromText(text);
@@ -82,6 +93,20 @@ export function useAI(
     }
   }, []);
 
+  const processNewItemsFromResponse = useCallback((text: string) => {
+    const newItems = parseNewItemsFromText(text);
+    for (const item of newItems) {
+      addItemRef.current(item);
+    }
+  }, []);
+
+  const processUsedItemsFromResponse = useCallback((text: string) => {
+    const usedNames = parseUsedItemsFromText(text);
+    for (const name of usedNames) {
+      removeItemRef.current(name);
+    }
+  }, []);
+
   const generateOpeningHook = useCallback(async () => {
     setIsPrompting(true);
 
@@ -97,6 +122,8 @@ export function useAI(
             updateLastMessage(data.response);
             const respText = typeof data.response === "string" ? data.response : (data.response as AIMessage).story || "";
             processNewSpellsFromResponse(respText);
+            processNewItemsFromResponse(respText);
+            processUsedItemsFromResponse(respText);
           }
           setIsPrompting(false);
           hookGeneratedRef.current = true;
@@ -109,11 +136,13 @@ export function useAI(
       });
     } else {
       try {
-        const hook = await fetchOpeningHook(spellsRef.current);
+        const hook = await fetchOpeningHook(spellsRef.current, inventoryRef.current);
         if (hook) {
           setMessageList((prev) => [...prev, { sender: "narrator", content: hook }]);
           const rawText = typeof hook === "string" ? hook : (hook as AIMessage).story || "";
           processNewSpellsFromResponse(rawText);
+          processNewItemsFromResponse(rawText);
+          processUsedItemsFromResponse(rawText);
         }
       } catch {
         setMessageList((prev) => [...prev, { sender: "narrator", content: "Une perturbation magique empêche la vision de se former..." }]);
@@ -122,7 +151,7 @@ export function useAI(
         hookGeneratedRef.current = true;
       }
     }
-  }, [generationMode, updateLastMessage, setMessageList, processNewSpellsFromResponse]);
+  }, [generationMode, updateLastMessage, setMessageList, processNewSpellsFromResponse, processNewItemsFromResponse, processUsedItemsFromResponse]);
 
   const generateGemini = useCallback(async () => {
     if (!prompt) return;
@@ -133,13 +162,15 @@ export function useAI(
 
     try {
       const history = messageList.map((m) => extractText(m.content));
-      const text = await fetchGeminiResponse(userMessage, history, spellsRef.current);
+      const text = await fetchGeminiResponse(userMessage, history, spellsRef.current, inventoryRef.current);
       if (text) {
         setMessageList((prev) => [...prev, { sender: "narrator", content: text }]);
         const rawText = typeof text === "string" ? text : (text as AIMessage).story || "";
         processXpFromResponse(rawText);
         processHpManaFromResponse(rawText);
         processNewSpellsFromResponse(rawText);
+        processNewItemsFromResponse(rawText);
+        processUsedItemsFromResponse(rawText);
         if (typeof text === "object" && text !== null) {
           const xpVal = (text as AIMessage).xp;
           if (xpVal && xpVal > 0) updateXP(Math.min(xpVal, XP_MAX_PER_TURN));
@@ -154,7 +185,7 @@ export function useAI(
     } finally {
       setIsPrompting(false);
     }
-  }, [prompt, messageList, setMessageList, processXpFromResponse, processHpManaFromResponse, processNewSpellsFromResponse, updateXP, updateHP, updateMana]);
+  }, [prompt, messageList, setMessageList, processXpFromResponse, processHpManaFromResponse, processNewSpellsFromResponse, processNewItemsFromResponse, processUsedItemsFromResponse, updateXP, updateHP, updateMana]);
 
   const generateOllamaStream = useCallback(async () => {
     if (!prompt || isPrompting) return;
@@ -171,7 +202,7 @@ export function useAI(
 
     if (eventSourceRef.current) eventSourceRef.current.close();
 
-    eventSourceRef.current = streamOllamaResponse(userMessage, history, spellsRef.current, {
+    eventSourceRef.current = streamOllamaResponse(userMessage, history, spellsRef.current, inventoryRef.current, {
       onUpdate: (fullText) => updateLastMessage(fullText),
       onDone: (data) => {
         if (data.response) {
@@ -183,6 +214,8 @@ export function useAI(
           processXpFromResponse(responseText);
           processHpManaFromResponse(responseText);
           processNewSpellsFromResponse(responseText);
+          processNewItemsFromResponse(responseText);
+          processUsedItemsFromResponse(responseText);
           if (
             typeof data.response === "object" &&
             data.response !== null
@@ -202,7 +235,7 @@ export function useAI(
         updateLastMessage("L'oracle s'est déconnecté...");
       },
     });
-  }, [prompt, isPrompting, messageList, setMessageList, updateLastMessage, processXpFromResponse, processHpManaFromResponse, processNewSpellsFromResponse, updateXP, updateHP, updateMana]);
+  }, [prompt, isPrompting, messageList, setMessageList, updateLastMessage, processXpFromResponse, processHpManaFromResponse, processNewSpellsFromResponse, processNewItemsFromResponse, processUsedItemsFromResponse, updateXP, updateHP, updateMana]);
 
   const handleAction = useCallback(() => {
     if (generationMode === "ollama-stream") {

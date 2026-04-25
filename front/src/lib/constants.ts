@@ -13,6 +13,30 @@ export const BASE_SPELLS: Spell[] = [
   },
 ];
 
+export interface InventoryItem {
+  name: string;
+  description: string;
+  effectType: "hp" | "mana";
+  effectValue: number;
+}
+
+export const BASE_INVENTORY: InventoryItem[] = [
+  {
+    name: "Potion de Soin",
+    description:
+      "Une fiole rougeâtre contenant un liquide viscide qui restaure la vitalité.",
+    effectType: "hp",
+    effectValue: 10,
+  },
+  {
+    name: "Potion de Mana",
+    description:
+      "Une fiole bleuâtre dont le contenu iridescent régénère l'énergie arcanique.",
+    effectType: "mana",
+    effectValue: 15,
+  },
+];
+
 export const SMETA = [
   { key: "strength" as const, label: "Force", icon: "⚔️", color: "#ef4444" },
   {
