@@ -46,6 +46,7 @@ function App() {
     spells, addSpell,
     inventory, addItem, removeItem,
     npcs, addNPC, updateNPC,
+    stats,
   );
 
   useEffect(() => {

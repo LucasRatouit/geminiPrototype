@@ -88,7 +88,7 @@ const createStreamCallbacks = (callbacks: StreamCallbacks): StreamCallbacks => {
   };
 };
 
-export const streamOpeningHook = ({
+export const streamOpenRouterOpeningHook = ({
   onUpdate,
   onDone,
   onError,
@@ -100,12 +100,12 @@ export const streamOpeningHook = ({
   const fullPrompt = getOpeningHookPrompt(spells, inventory, npcs, stats);
   const wrappedCallbacks = createStreamCallbacks({ onUpdate, onDone, onError });
 
-  fetchEventSource(`${API_URL}/ai/generate/ollama/stream`, { prompt: fullPrompt }, wrappedCallbacks);
+  fetchEventSource(`${API_URL}/ai/generate/openrouter/stream`, { prompt: fullPrompt }, wrappedCallbacks);
 
   return { close: () => {} };
 };
 
-export const streamOllamaResponse = (
+export const streamOpenRouterResponse = (
   userMessage: string,
   history: string[],
   spells: Spell[],
@@ -117,7 +117,7 @@ export const streamOllamaResponse = (
   const fullPrompt = getActionPrompt(userMessage, history, spells, inventory, npcs, stats);
   const wrappedCallbacks = createStreamCallbacks({ onUpdate, onDone, onError });
 
-  fetchEventSource(`${API_URL}/ai/generate/ollama/stream`, { prompt: fullPrompt, userMessage }, wrappedCallbacks);
+  fetchEventSource(`${API_URL}/ai/generate/openrouter/stream`, { prompt: fullPrompt, userMessage }, wrappedCallbacks);
 
   return { close: () => {} };
 };

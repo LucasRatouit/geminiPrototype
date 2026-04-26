@@ -6,7 +6,16 @@ interface PersoTabProps {
   npcs: NPC[];
 }
 
+const ELYSIA_NPC: NPC = {
+  name: "Élysia",
+  description: "Apprentie à l'Académie des Voiles Éternelles, réincarnation fragmentée d'une Archimage oubliée. Cheveux roses, yeux bleu cristallin.",
+  role: "Apprentie",
+  relation: "joueur",
+};
+
 export const PersoTab: React.FC<PersoTabProps> = ({ npcs }) => {
+  const otherNpcs = npcs.filter((n) => n.relation !== "joueur");
+
   return (
     <div className="flex-1 overflow-y-auto px-3 py-5 md:py-8 scrollbar-none">
       <div className="max-w-md mx-auto flex flex-col gap-5">
@@ -31,16 +40,93 @@ export const PersoTab: React.FC<PersoTabProps> = ({ npcs }) => {
           </div>
         </div>
 
-        {npcs.length === 0 ? (
+        {/* Élysia — Player Character Card */}
+        {(() => {
+          const elysiaInList = npcs.find((n) => n.relation === "joueur");
+          const elysia = elysiaInList || ELYSIA_NPC;
+          const meta = RELATION_META.joueur;
+          return (
+            <div
+              className="relative rounded-2xl overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, rgba(251,191,36,0.06), rgba(14,12,22,0.95))",
+                border: "1px solid rgba(251,191,36,0.25)",
+              }}
+            >
+              <div
+                className="absolute top-0 left-0 right-0 h-px"
+                style={{
+                  background: "linear-gradient(90deg, transparent, rgba(251,191,36,0.5), transparent)",
+                }}
+              />
+              <div
+                className="absolute left-0 top-0 bottom-0 w-1.5"
+                style={{
+                  background: `linear-gradient(180deg, #fbbf24, rgba(251,191,36,0.2))`,
+                }}
+              />
+              <div className="relative p-5 pl-7">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className="text-[9px] font-bold tracking-[2px] uppercase opacity-50"
+                        style={{ fontFamily: "'Cinzel', serif" }}
+                      >
+                        {elysia.role}
+                      </span>
+                    </div>
+                    <h3
+                      className="text-lg font-black tracking-wide"
+                      style={{
+                        fontFamily: "'Cinzel', serif",
+                        color: "#fbbf24",
+                        textShadow: "0 0 25px rgba(251,191,36,0.35)",
+                      }}
+                    >
+                      {elysia.name}
+                    </h3>
+                  </div>
+                  <div
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
+                    style={{
+                      background: "rgba(251,191,36,0.12)",
+                      border: "1px solid rgba(251,191,36,0.3)",
+                    }}
+                  >
+                    <span className="text-[11px]">{meta.icon}</span>
+                    <span
+                      className="text-[9px] font-bold tracking-wider uppercase"
+                      style={{
+                        color: "#fbbf24",
+                        fontFamily: "'Cinzel', serif",
+                      }}
+                    >
+                      {meta.label}
+                    </span>
+                  </div>
+                </div>
+                <p
+                  className="text-[13px] leading-relaxed opacity-65"
+                  style={{ fontFamily: "'IM Fell English', serif" }}
+                >
+                  {elysia.description}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {otherNpcs.length === 0 ? (
           <div
-            className="text-center py-12 opacity-30 italic"
+            className="text-center py-8 opacity-30 italic"
             style={{ fontFamily: "'IM Fell English', serif" }}
           >
-            Aucun personnage rencontré... pour l'instant.
+            Aucun PNJ rencontré... pour l'instant.
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {npcs.map((npc, i) => {
+            {otherNpcs.map((npc, i) => {
               const meta = RELATION_META[npc.relation] || RELATION_META.inconnu;
               const isUnknown = npc.name === "???";
               const hasDescription = npc.description && npc.description.trim().length > 0;

@@ -4,9 +4,10 @@ import { getActionPrompt, getOpeningHookPrompt } from "../lib/game-prompts";
 import type { Spell } from "../lib/constants";
 import type { InventoryItem } from "../lib/constants";
 import type { NPC } from "../lib/constants";
+import type { GameStats } from "@/hooks/useGameState";
 
-export const fetchOpeningHook = async (spells?: Spell[], inventory?: InventoryItem[], npcs?: NPC[]) => {
-  const prompt = getOpeningHookPrompt(spells, inventory, npcs);
+export const fetchOpeningHook = async (spells?: Spell[], inventory?: InventoryItem[], npcs?: NPC[], stats?: GameStats) => {
+  const prompt = getOpeningHookPrompt(spells, inventory, npcs, stats);
   const res = await axios.post(`${API_URL}/ai/generate/gemini`, { prompt });
   return res.data?.text;
 };
@@ -17,8 +18,9 @@ export const fetchGeminiResponse = async (
   spells?: Spell[],
   inventory?: InventoryItem[],
   npcs?: NPC[],
+  stats?: GameStats,
 ) => {
-  const prompt = getActionPrompt(userMessage, history, spells, inventory, npcs);
+  const prompt = getActionPrompt(userMessage, history, spells, inventory, npcs, stats);
   const res = await axios.post(`${API_URL}/ai/generate/gemini`, {
     prompt,
     userMessage,

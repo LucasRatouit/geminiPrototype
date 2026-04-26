@@ -1,11 +1,8 @@
-import { GoogleGenAI } from "@google/genai";
+import { ThinkingLevel } from "@google/genai";
 
-const genAI = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-export async function generateText(prompt) {
-  const systemInstruction = `
+const systemInstruction = `
     Tu es un narrateur de RPG expert pour l'univers de l'Académie des Voiles Éternelles.
 
     RÈGLES STRICTES :
@@ -60,7 +57,7 @@ export async function generateText(prompt) {
     - L'effet de l'objet est automatiquement appliqué via les tags [VIE:+montant] ou [MANA:+montant] existants. Par exemple, une Potion de Soin donne [VIE:+10], une Potion de Mana donne [MANA:+15].
     - IMPORTANT : Ne JAMAIS utiliser un objet qui n'est pas listé dans la liste des objets fournis dans le prompt. Si la besace est vide ou ne contient pas l'objet demandé, décris une recherche vaine dans le sac — l'objet n'est plus disponible.
     - IMPORTANT : Ne JAMAIS utiliser un objet qui n'est pas listé dans la liste des objets fournis dans le prompt. La section BESACE est EXHAUSTIVE — si un objet n'y figure pas, il n'est PAS disponible.
-    - Si l'histoire justifie qu'Élysia trouve ou reçoive un nouvel objet (butin, récompense, découverte), inclus le tag [NOUVEAU_OBJET:Nom|TypeEffet|Valeur|Description] dans le champ "story". TypeEffet est "hp" ou "mana". Exemple : [NOUVEAU_OBJET:Fiole de Lune|mana|20|Un liquide argenté qui restores l'énergie arcanique avec une douceur surnaturelle.]. N'accorde un nouvel objet que pour un événement narratif significatif.
+    - Si l'histoire justifie qu'Élysia trouve ou reçoive un nouvel objet (butin, récompense, découverte), inclus le tag [NOUVEAU_OBJET:Nom|TypeEffet|Valeur|Description] dans le champ "story". TypeEffet est "hp" ou "mana". Exemple : [NOUVEAU_OBJET:Fiole de Lune|mana|20|Un liquide argenté qui restaure l'énergie arcanique avec une douceur surnaturelle.]. N'accorde un nouvel objet que pour un événement narratif significatif.
 
     PERSONNAGES :
     - OBLIGATOIRE : Chaque fois qu'un personnage nommé apparaît pour la première fois dans l'histoire, inclus IMMÉDIATEMENT le tag [NOUVEAU_PERSO:...] dans le champ "story" ET ajoute une entrée dans le tableau "personnages" du JSON. Tu peux utiliser des formats partiels : [NOUVEAU_PERSO:Nom] si tu connais juste le nom, [NOUVEAU_PERSO:Nom|Role], [NOUVEAU_PERSO:Nom|Role|Relation], ou le format complet [NOUVEAU_PERSO:Nom|Role|Relation|Description]. Si le nom est inconnu, utilise [NOUVEAU_PERSO:???|Role|Relation|Description]. N'attends PAS qu'un personnage soit « significatif » — enregistre-le dès sa première apparition.
@@ -70,27 +67,98 @@ export async function generateText(prompt) {
     - Format du tableau "majPersonnages" : [{"name": "Nom", "role": "Nouveau role (optionnel)", "relation": "allié|neutre|ennemi|mentor|inconnu|joueur (optionnel)", "description": "Nouvelle description (optionnel)"}]
   `;
 
+export async function generateText(prompt, onTokenCallback) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free';
+
+  if (!apiKey) {
+    console.error("OPENROUTER_API_KEY is not set");
+    return {
+      story: "La clé OpenRouter n'est pas configurée... (Erreur de configuration)",
+      actions: [],
+      xp: 0,
+      hp: 0,
+      mana: 0,
+      personnages: [],
+      majPersonnages: []
+    };
+  }
+
   try {
-    const res = await genAI.models.generateContent({
-      model: "gemini-3-flash-preview",
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.7,
-        maxOutputTokens: 2000, // Augmenté pour éviter la coupure du JSON
-        responseMimeType: "application/json",
-        thinkingConfig: {
-          thinkingLevel: "low"
-        }
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
       },
-      contents: [{ role: "user", parts: [{ text: prompt }] }]
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: prompt },
+        ],
+        response_format: { type: 'json_object' },
+        reasoning: { enabled: false },
+        stream: true,
+      }),
     });
 
-    let rawText = res.candidates[0].content.parts[0].text;
-    return JSON.parse(rawText);
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`OpenRouter API error ${response.status}: ${errorBody}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    let fullResponse = '';
+    let lastSentLength = 0;
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+        const data = trimmed.slice(6);
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            fullResponse += content;
+
+            const storyMatch = fullResponse.match(/"story":\s*"((?:[^"\\]|\\.)*)/);
+
+            if (storyMatch && storyMatch[1]) {
+              const currentStoryContent = storyMatch[1];
+              const delta = currentStoryContent.substring(lastSentLength);
+
+              if (delta) {
+                onTokenCallback(delta);
+                lastSentLength = currentStoryContent.length;
+              }
+            }
+          }
+        } catch {
+          // Ignore malformed JSON chunks during streaming
+        }
+      }
+    }
+
+    return JSON.parse(fullResponse);
 
   } catch (error) {
-    console.error("Erreur Gemini ou Parsing:", error);
-    // En cas d'erreur, on renvoie un objet valide par défaut pour ne pas casser le front
+    console.error("Erreur OpenRouter ou Parsing:", error);
     return {
       story: "Une perturbation magique empêche la vision de se former correctement... (Erreur de l'oracle)",
       actions: [],

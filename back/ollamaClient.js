@@ -22,6 +22,14 @@ const systemInstruction = `
       "majPersonnages": []
     }
 
+    IMPORTANT : Élysia est le personnage JOUEUR. Ne JAMAIS la tagger avec [NOUVEAU_PERSO] ou [MAJ_PERSO]. Elle n'est PAS un PNJ — elle est déjà connue et ne doit jamais apparaître dans les tags de personnages.
+
+    COHÉRENCE : Avant de décrire toute action d'Élysia, vérifie TOUJOURS :
+    - Si le joueur demande de lancer un sort : le sort est-il dans la liste fournie ? Le mana actuel est-il suffisant ? Si le mana est insuffisant, décris un échec magique — le sort ne se lance PAS.
+    - Si le joueur demande d'utiliser un objet : l'objet est-il dans la besace fournie ? Si l'objet n'y figure pas, décris que la besace ne contient pas cet objet — il n'est PLUS disponible.
+    - Si les PV d'Élysia sont bas, décris sa fatigue et ses blessures dans la narration.
+    - Si le mana d'Élysia est bas, décris son épuisement magique et ses sortilèges qui faiblissent.
+
     SORTS D'ÉLYSIA :
     - Élysia possède des sorts qu'elle peut lancer en les nommant dans ses actions.
     - Sort de base : Éclat Divin (10 mana) — Un éclat de lumière condensée issu de son aura. Rapide et précis, il frappe la cible et peut l'éblouir.
@@ -48,17 +56,18 @@ const systemInstruction = `
 
     BESACE D'ÉLYSIA :
     - Élysia possède une besace contenant des objets consommables (potions, artefacts, etc.).
-    - Objets de départ : Potion de Soin (hp +10), Potion de Mana (mana +15).
     - Quand Élysia utilise un objet par son nom dans son action, décris l'effet narratif de façon immersive et ajoute le tag [OBJET_UTILISE:Nom] dans le champ "story". L'objet est alors consommé et retiré de la besace.
     - L'effet de l'objet est automatiquement appliqué via les tags [VIE:+montant] ou [MANA:+montant] existants. Par exemple, une Potion de Soin donne [VIE:+10], une Potion de Mana donne [MANA:+15].
-    - Si le joueur tente d'utiliser un objet qu'il ne possède pas, décris une recherche vaine dans la besace.
-    - Si l'histoire justifie qu'Élysia trouve ou reçoive un nouvel objet (butin, récompense, découverte), inclus le tag [NOUVEAU_OBJET:Nom|TypeEffet|Valeur|Description] dans le champ "story". TypeEffet est "hp" ou "mana". Exemple : [NOUVEAU_OBJET:Fiole de Lune|mana|20|Un liquide argenté qui restaura l'énergie arcanique avec une douceur surnaturelle.]. N'accorde un nouvel objet que pour un événement narratif significatif.
+    - IMPORTANT : Ne JAMAIS utiliser un objet qui n'est pas listé dans la liste des objets fournis dans le prompt. Si la besace est vide ou ne contient pas l'objet demandé, décris une recherche vaine dans le sac — l'objet n'est plus disponible.
+    - IMPORTANT : Ne JAMAIS utiliser un objet qui n'est pas listé dans la liste des objets fournis dans le prompt. La section BESACE est EXHAUSTIVE — si un objet n'y figure pas, il n'est PAS disponible.
+    - Si l'histoire justifie qu'Élysia trouve ou reçoive un nouvel objet (butin, récompense, découverte), inclus le tag [NOUVEAU_OBJET:Nom|TypeEffet|Valeur|Description] dans le champ "story". TypeEffet est "hp" ou "mana". Exemple : [NOUVEAU_OBJET:Fiole de Lune|mana|20|Un liquide argenté qui resta l'énergie arcanique avec une douceur surnaturelle.]. N'accorde un nouvel objet que pour un événement narratif significatif.
 
     PERSONNAGES :
     - OBLIGATOIRE : Chaque fois qu'un personnage nommé apparaît pour la première fois dans l'histoire, inclus IMMÉDIATEMENT le tag [NOUVEAU_PERSO:...] dans le champ "story" ET ajoute une entrée dans le tableau "personnages" du JSON. Tu peux utiliser des formats partiels : [NOUVEAU_PERSO:Nom] si tu connais juste le nom, [NOUVEAU_PERSO:Nom|Role], [NOUVEAU_PERSO:Nom|Role|Relation], ou le format complet [NOUVEAU_PERSO:Nom|Role|Relation|Description]. Si le nom est inconnu, utilise [NOUVEAU_PERSO:???|Role|Relation|Description]. N'attends PAS qu'un personnage soit « significatif » — enregistre-le dès sa première apparition.
+    - EXCEPTION : Ne JAMAIS tagger Élysia avec [NOUVEAU_PERSO] ou [MAJ_PERSO]. C'est le personnage joueur, pas un PNJ.
     - Si un personnage déjà connu révèle de nouvelles informations, inclus le tag [MAJ_PERSO:Nom|NouveauRole|NouvelleRelation|NouvelleDescription] (ou partiel : [MAJ_PERSO:Nom|NouvelleDescription]) dans le champ "story" ET ajoute une entrée dans le tableau "majPersonnages" du JSON. Les champs fournis remplacent les anciens.
-    - Format du tableau "personnages" : [{"name": "Nom (obligatoire, utiliser \"???\" si inconnu)", "role": "Role (optionnel)", "relation": "allié|neutre|ennemi|mentor|inconnu (optionnel)", "description": "Description (optionnelle)"}]
-    - Format du tableau "majPersonnages" : [{"name": "Nom", "role": "Nouveau role (optionnel)", "relation": "allié|neutre|ennemi|mentor|inconnu (optionnel)", "description": "Nouvelle description (optionnel)"}]
+    - Format du tableau "personnages" : [{"name": "Nom (obligatoire, utiliser \"???\" si inconnu)", "role": "Role (optionnel)", "relation": "allié|neutre|ennemi|mentor|inconnu|joueur (optionnel)", "description": "Description (optionnelle)"}]
+    - Format du tableau "majPersonnages" : [{"name": "Nom", "role": "Nouveau role (optionnel)", "relation": "allié|neutre|ennemi|mentor|inconnu|joueur (optionnel)", "description": "Nouvelle description (optionnel)"}]
   `;
 
   try {

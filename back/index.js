@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { generateText as generateGemini } from "./geminiClient.js";
 import { generateText as generateOllama } from "./ollamaClient.js";
+import { generateText as generateOpenRouter } from "./openrouterClient.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -47,7 +48,14 @@ const DEFAULT_CHARACTER = {
       effectValue: 15,
     },
   ],
-  npcs: [],
+  npcs: [
+    {
+      name: "Élysia",
+      description: "Apprentie à l'Académie des Voiles Éternelles, réincarnation fragmentée d'une Archimage oubliée. Cheveux roses, yeux bleu cristallin.",
+      role: "Apprentie",
+      relation: "joueur",
+    },
+  ],
 };
 
 let characterState = { ...DEFAULT_CHARACTER };
@@ -97,9 +105,8 @@ app.post("/api/ai/generate/gemini", async (req, res) => {
 });
 
 // Route pour Ollama avec streaming (Server-Sent Events)
-app.get("/api/ai/generate/ollama/stream", (req, res) => {
-  const prompt = req.query.prompt;
-  const userMessage = req.query.userMessage;
+app.post("/api/ai/generate/ollama/stream", (req, res) => {
+  const { prompt, userMessage } = req.body;
   if (!prompt) {
     return res.status(400).send("Prompt is required.");
   }
@@ -122,6 +129,36 @@ app.get("/api/ai/generate/ollama/stream", (req, res) => {
   })
   .catch((error) => {
     console.error("Error in ollama stream:", error);
+    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    res.end();
+  });
+});
+
+// Route pour OpenRouter avec streaming (Server-Sent Events)
+app.post("/api/ai/generate/openrouter/stream", (req, res) => {
+  const { prompt, userMessage } = req.body;
+  if (!prompt) {
+    return res.status(400).send("Prompt is required.");
+  }
+
+  if (userMessage) {
+    messageList.push({ sender: "player", content: userMessage });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  generateOpenRouter(prompt, (token) => {
+    res.write(`data: ${JSON.stringify({ token })}\n\n`);
+  })
+  .then((finalResponse) => {
+    messageList.push({ sender: "narrator", content: finalResponse });
+    res.write(`data: ${JSON.stringify({ done: true, response: finalResponse })}\n\n`);
+    res.end();
+  })
+  .catch((error) => {
+    console.error("Error in openrouter stream:", error);
     res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
     res.end();
   });

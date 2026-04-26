@@ -64,14 +64,6 @@ export const DEFAULT_THEME: GameTheme = {
 
 const XP_MAX_PER_TURN = 25;
 
-let syncTimer: ReturnType<typeof setTimeout> | null = null;
-const syncStatsToServer = (stats: GameStats) => {
-  if (syncTimer) clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => {
-    updateCharacter(stats).catch(() => {});
-  }, 500);
-};
-
 export function useGameState() {
   const [messageList, setMessageList] = useState<Message[]>([]);
   const [stats, setStats] = useState<GameStats>(DEFAULT_STATS);
@@ -90,6 +82,7 @@ export function useGameState() {
   const [lvlMode, setLvlMode] = useState<"all" | "pick" | null>(null);
 
   const prevLevelRef = useRef(DEFAULT_STATS.level);
+  const isLoadedRef = useRef(false);
 
   const updateLastMessage = useCallback((content: MessageContent) => {
     setMessageList((prev) => {
@@ -124,6 +117,8 @@ export function useGameState() {
       return messages.length > 0;
     } catch (error) {
       console.error("Erreur historique:", error);
+    } finally {
+      isLoadedRef.current = true;
     }
     return false;
   }, []);
@@ -159,7 +154,6 @@ export function useGameState() {
         hp: Math.min(prev.hp, newHpMax),
         manaMax: newManaMax,
       };
-      syncStatsToServer(next);
       return next;
     });
   }, []);
@@ -170,9 +164,7 @@ export function useGameState() {
     setTimeout(() => setHpToast(null), 5000);
     setStats((prev) => {
       const newHp = Math.max(0, Math.min(prev.hp + delta, prev.hpMax));
-      const next = { ...prev, hp: newHp };
-      syncStatsToServer(next);
-      return next;
+      return { ...prev, hp: newHp };
     });
   }, []);
 
@@ -182,30 +174,21 @@ export function useGameState() {
     setTimeout(() => setManaToast(null), 5000);
     setStats((prev) => {
       const newMana = Math.max(0, Math.min(prev.mana + delta, prev.manaMax));
-      const next = { ...prev, mana: newMana };
-      syncStatsToServer(next);
-      return next;
+      return { ...prev, mana: newMana };
     });
   }, []);
-
-  const statsRef = useRef(stats);
-  useEffect(() => { statsRef.current = stats; });
 
   const addSpell = useCallback((spell: Spell) => {
     setSpells((prev) => {
       if (prev.some((s) => s.name === spell.name)) return prev;
-      const next = [...prev, spell];
-      syncStatsToServer({ ...statsRef.current, spells: next } as GameStats & { spells: Spell[] });
-      return next;
+      return [...prev, spell];
     });
   }, []);
 
   const addItem = useCallback((item: InventoryItem) => {
     setInventory((prev) => {
       if (prev.some((i) => i.name === item.name)) return prev;
-      const next = [...prev, item];
-      syncStatsToServer({ ...statsRef.current, inventory: next } as GameStats & { inventory: InventoryItem[] });
-      return next;
+      return [...prev, item];
     });
   }, []);
 
@@ -213,12 +196,12 @@ export function useGameState() {
     setInventory((prev) => {
       const next = prev.filter((i) => i.name !== name);
       if (next.length === prev.length) return prev;
-      syncStatsToServer({ ...statsRef.current, inventory: next } as GameStats & { inventory: InventoryItem[] });
       return next;
     });
   }, []);
 
   const addNPC = useCallback((npc: NPC) => {
+    if (npc.name === "Élysia") return;
     setNpcs((prev) => {
       const existingIdx = prev.findIndex((n) => n.name === npc.name);
       if (existingIdx !== -1) {
@@ -229,16 +212,14 @@ export function useGameState() {
         if (npc.description) updated.description = npc.description;
         const next = [...prev];
         next[existingIdx] = updated;
-        syncStatsToServer({ ...statsRef.current, npcs: next } as GameStats & { npcs: NPC[] });
         return next;
       }
-      const next = [...prev, npc];
-      syncStatsToServer({ ...statsRef.current, npcs: next } as GameStats & { npcs: NPC[] });
-      return next;
+      return [...prev, npc];
     });
   }, []);
 
   const updateNPC = useCallback((name: string, updates: { role?: string; relation?: NPC["relation"]; description?: string }) => {
+    if (name === "Élysia") return;
     setNpcs((prev) => {
       const idx = prev.findIndex((n) => n.name === name);
       if (idx === -1) return prev;
@@ -249,28 +230,23 @@ export function useGameState() {
         ...(updates.relation ? { relation: updates.relation } : {}),
         ...(updates.description ? { description: updates.description } : {}),
       };
-      syncStatsToServer({ ...statsRef.current, npcs: next } as GameStats & { npcs: NPC[] });
       return next;
     });
   }, []);
 
   const doLevelAll = useCallback(() => {
-    setStats((prev) => {
-      const next = {
-        ...prev,
-        hp: prev.hpMax + 15,
-        hpMax: prev.hpMax + 15,
-        mana: prev.manaMax + 10,
-        manaMax: prev.manaMax + 10,
-        strength: prev.strength + 2,
-        intelligence: prev.intelligence + 2,
-        spirit: prev.spirit + 2,
-        agility: prev.agility + 2,
-        charisma: prev.charisma + 2,
-      };
-      syncStatsToServer(next);
-      return next;
-    });
+    setStats((prev) => ({
+      ...prev,
+      hp: prev.hpMax + 15,
+      hpMax: prev.hpMax + 15,
+      mana: prev.manaMax + 10,
+      manaMax: prev.manaMax + 10,
+      strength: prev.strength + 2,
+      intelligence: prev.intelligence + 2,
+      spirit: prev.spirit + 2,
+      agility: prev.agility + 2,
+      charisma: prev.charisma + 2,
+    }));
     setLvlModal(false);
     setLvlMode(null);
   }, []);
@@ -279,14 +255,10 @@ export function useGameState() {
     const validKeys = ["strength", "intelligence", "spirit", "agility", "charisma"] as const;
     type ValidKey = (typeof validKeys)[number];
     if (!validKeys.includes(key as ValidKey)) return;
-    setStats((prev) => {
-      const next = {
-        ...prev,
-        [key]: (prev as unknown as Record<string, number>)[key] + 5,
-      };
-      syncStatsToServer(next as GameStats);
-      return next;
-    });
+    setStats((prev) => ({
+      ...prev,
+      [key]: (prev as unknown as Record<string, number>)[key] + 5,
+    }));
     setLvlModal(false);
     setLvlMode(null);
   }, []);
@@ -323,6 +295,14 @@ export function useGameState() {
     setManaToast(null);
     generateOpeningHook();
   }, []);
+
+  useEffect(() => {
+    if (!isLoadedRef.current) return;
+    const timer = setTimeout(() => {
+      updateCharacter({ ...stats, spells, inventory, npcs }).catch(() => {});
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [stats, spells, inventory, npcs]);
 
   return {
     messageList, setMessageList,

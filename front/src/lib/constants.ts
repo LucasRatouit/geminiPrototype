@@ -24,7 +24,7 @@ export interface NPC {
   name: string;
   description: string;
   role: string;
-  relation: "allié" | "neutre" | "ennemi" | "mentor" | "inconnu";
+  relation: "joueur" | "allié" | "neutre" | "ennemi" | "mentor" | "inconnu";
 }
 
 export const BASE_INVENTORY: InventoryItem[] = [
@@ -59,9 +59,17 @@ export const SMETA = [
 
 export const NPC_LIMIT = 15;
 
-export const BASE_NPCS: NPC[] = [];
+export const BASE_NPCS: NPC[] = [
+  {
+    name: "Élysia",
+    description: "Apprentie à l'Académie des Voiles Éternelles, réincarnation fragmentée d'une Archimage oubliée. Cheveux roses, yeux bleu cristallin.",
+    role: "Apprentie",
+    relation: "joueur",
+  },
+];
 
 export const RELATION_META: Record<NPC["relation"], { label: string; icon: string; color: string; glow: string }> = {
+  joueur: { label: "Joueur", icon: "⭐", color: "#fbbf24", glow: "rgba(251,191,36,0.3)" },
   allié: { label: "Allié", icon: "🛡️", color: "#4ade80", glow: "rgba(74,222,128,0.3)" },
   neutre: { label: "Neutre", icon: "⚖️", color: "#9ca3af", glow: "rgba(156,163,175,0.3)" },
   ennemi: { label: "Ennemi", icon: "⚔️", color: "#ef4444", glow: "rgba(239,68,68,0.3)" },
