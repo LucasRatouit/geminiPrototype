@@ -70,7 +70,7 @@ function parseHpManaFromText(text: string): { hpDelta: number; manaDelta: number
 }
 
 const extractText = (content: MessageContent): string =>
-  typeof content === "string" ? content : content.story;
+  typeof content === "string" ? content : (content?.story ?? String(content ?? ""));
 
 const buildLabeledHistory = (messages: Message[]): string[] =>
   messages.map((m) => {

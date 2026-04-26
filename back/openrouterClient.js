@@ -1,5 +1,3 @@
-import { ThinkingLevel } from "@google/genai";
-
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 const systemInstruction = `
@@ -155,7 +153,36 @@ export async function generateText(prompt, onTokenCallback) {
       }
     }
 
-    return JSON.parse(fullResponse);
+    let parsed;
+    try {
+      parsed = JSON.parse(fullResponse);
+    } catch {
+      console.error("OpenRouter: réponse non-JSON brute :", fullResponse.slice(0, 200));
+      return {
+        story: "La réponse de l'oracle est illisible... (Erreur de parsing)",
+        actions: [],
+        xp: 0,
+        hp: 0,
+        mana: 0,
+        personnages: [],
+        majPersonnages: []
+      };
+    }
+
+    if (!parsed || typeof parsed.story !== 'string') {
+      console.error("OpenRouter: réponse inattendue :", JSON.stringify(parsed).slice(0, 200));
+      return {
+        story: typeof parsed?.story === 'string' ? parsed.story : "L'oracle n'a pas transmis de vision... (Réponse invalide)",
+        actions: Array.isArray(parsed?.actions) ? parsed.actions : [],
+        xp: typeof parsed?.xp === 'number' ? parsed.xp : 0,
+        hp: typeof parsed?.hp === 'number' ? parsed.hp : 0,
+        mana: typeof parsed?.mana === 'number' ? parsed.mana : 0,
+        personnages: Array.isArray(parsed?.personnages) ? parsed.personnages : [],
+        majPersonnages: Array.isArray(parsed?.majPersonnages) ? parsed.majPersonnages : []
+      };
+    }
+
+    return parsed;
 
   } catch (error) {
     console.error("Erreur OpenRouter ou Parsing:", error);

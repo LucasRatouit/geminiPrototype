@@ -14,10 +14,10 @@ interface StoryMessagesProps {
 }
 
 const extractRaw = (content: MessageContent): string =>
-  typeof content === "string" ? content : content.story;
+  typeof content === "string" ? content : (content?.story ?? String(content ?? ""));
 
 export const cleanNarrativeText = (text: string): string =>
-  text
+  (typeof text === "string" ? text : String(text ?? ""))
     .replace(/\[HUD_START\][\s\S]*?\[HUD_END\]/g, "")
     .replace(/\[NPC_START\][\s\S]*?\[NPC_END\]/g, "")
     .replace(/\[ARME_START\][\s\S]*?\[ARME_END\]/g, "")
