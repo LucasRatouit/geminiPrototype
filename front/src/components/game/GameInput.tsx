@@ -49,6 +49,11 @@ export function GameInput({
             placeholder={placeholder}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
+            onFocus={(e) => {
+              setTimeout(() => {
+                e.target.scrollIntoView({ behavior: "smooth", block: "end" });
+              }, 300);
+            }}
           />
           {!isLoading && prompt.length > 0 && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-parchment-dim/30 font-mono tabular-nums">

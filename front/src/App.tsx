@@ -79,7 +79,7 @@ function App() {
 
   return (
     <div
-      className="w-screen h-screen flex flex-col overflow-hidden relative"
+      className="w-screen h-dvh flex flex-col overflow-hidden relative"
       style={{ background: "radial-gradient(ellipse at 50% 0%, #12101a 0%, #08060d 70%)" }}
     >
       <MagicParticles />
