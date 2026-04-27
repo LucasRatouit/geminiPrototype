@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
-import { fetchGeminiResponse, fetchOpeningHook } from "@/api/gemini";
-import { streamOllamaResponse, streamOpeningHook } from "@/api/ollama";
-import { streamOpenRouterResponse, streamOpenRouterOpeningHook } from "@/api/openrouter";
+import { fetchGeminiResponse, fetchOpeningHook, fetchGeminiSuggestions } from "@/api/gemini";
+import { streamOllamaResponse, streamOpeningHook, fetchOllamaSuggestions } from "@/api/ollama";
+import { streamOpenRouterResponse, streamOpenRouterOpeningHook, fetchOpenRouterSuggestions } from "@/api/openrouter";
 import { parseNewSpellsFromText, parseNewItemsFromText, parseUsedItemsFromText, parseNewNPCsFromText, parseUpdatedNPCsFromText, type NPCUpdate } from "@/lib/game-prompts";
 import type { Message, MessageContent, AIMessage } from "./useGameState";
 import type { GameStats } from "./useGameState";
@@ -98,6 +98,8 @@ export function useAI(
 ) {
   const [isPrompting, setIsPrompting] = useState(false);
   const [prompt, setPrompt] = useState("");
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const eventSourceRef = useRef<{ close: () => void } | null>(null);
   const hookGeneratedRef = useRef(false);
 
@@ -399,6 +401,44 @@ export function useAI(
     }
   }, [generationMode, generateOllamaStream, generateOpenRouterStream, generateGemini]);
 
+  const generateSuggestions = useCallback(async () => {
+    if (isSuggesting || isPrompting) return;
+    setIsSuggesting(true);
+    try {
+      const history = buildLabeledHistory(messageList);
+      let result: string[] = [];
+      if (generationMode === "gemini") {
+        result = await fetchGeminiSuggestions(history, spellsRef.current, inventoryRef.current, npcsRef.current, statsRef.current);
+      } else if (generationMode === "ollama-stream") {
+        result = await fetchOllamaSuggestions(history, spellsRef.current, inventoryRef.current, npcsRef.current, statsRef.current);
+      } else if (generationMode === "openrouter-stream") {
+        result = await fetchOpenRouterSuggestions(history, spellsRef.current, inventoryRef.current, npcsRef.current, statsRef.current);
+      }
+      const cleanSuggestions = result.filter((s): s is string => typeof s === "string");
+      if (cleanSuggestions.length === 0) {
+        setSuggestions([
+          "Explorer les alentours avec prudence et observer ce qui se passe autour d'Élysia.",
+          "Interagir avec le premier personnage ou élément mystérieux que la narration a mentionné.",
+          "Utiliser un sort connu pour faire la lumière sur la situation actuelle.",
+        ]);
+      } else {
+        setSuggestions(cleanSuggestions.slice(0, 3));
+      }
+    } catch {
+      setSuggestions([
+        "Explorer les alentours avec prudence et observer ce qui se passe autour d'Élysia.",
+        "Interagir avec le premier personnage ou élément mystérieux que la narration a mentionné.",
+        "Utiliser un sort connu pour faire la lumière sur la situation actuelle.",
+      ]);
+    } finally {
+      setIsSuggesting(false);
+    }
+  }, [generationMode, isSuggesting, isPrompting, messageList]);
+
+  const clearSuggestions = useCallback(() => {
+    setSuggestions([]);
+  }, []);
+
   return {
     isPrompting,
     prompt,
@@ -406,5 +446,9 @@ export function useAI(
     hookGeneratedRef,
     generateOpeningHook,
     handleAction,
+    isSuggesting,
+    suggestions,
+    generateSuggestions,
+    clearSuggestions,
   };
 }

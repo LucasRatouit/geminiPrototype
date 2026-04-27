@@ -1,6 +1,6 @@
 import axios from "axios";
 import { API_URL } from "./config";
-import { getActionPrompt, getOpeningHookPrompt } from "../lib/game-prompts";
+import { getActionPrompt, getOpeningHookPrompt, getSuggestionsPrompt } from "../lib/game-prompts";
 import type { Spell } from "../lib/constants";
 import type { InventoryItem } from "../lib/constants";
 import type { NPC } from "../lib/constants";
@@ -26,4 +26,16 @@ export const fetchGeminiResponse = async (
     userMessage,
   });
   return res.data?.text;
+};
+
+export const fetchGeminiSuggestions = async (
+  history: string[],
+  spells?: Spell[],
+  inventory?: InventoryItem[],
+  npcs?: NPC[],
+  stats?: GameStats,
+): Promise<string[]> => {
+  const prompt = getSuggestionsPrompt(history, spells, inventory, npcs, stats);
+  const res = await axios.post(`${API_URL}/ai/generate/gemini/suggestions`, { prompt });
+  return res.data?.suggestions ?? [];
 };

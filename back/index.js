@@ -1,9 +1,9 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { generateText as generateGemini } from "./geminiClient.js";
-import { generateText as generateOllama } from "./ollamaClient.js";
-import { generateText as generateOpenRouter } from "./openrouterClient.js";
+import { generateText as generateGemini, generateSuggestions as generateGeminiSuggestions } from "./geminiClient.js";
+import { generateText as generateOllama, generateSuggestions as generateOllamaSuggestions } from "./ollamaClient.js";
+import { generateText as generateOpenRouter, generateSuggestions as generateOpenRouterSuggestions } from "./openrouterClient.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -162,6 +162,49 @@ app.post("/api/ai/generate/openrouter/stream", (req, res) => {
     res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
     res.end();
   });
+});
+
+// Routes pour les suggestions (non-streaming, ne modifient pas l'historique)
+app.post("/api/ai/generate/gemini/suggestions", async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) {
+    return res.status(400).send("Prompt is required.");
+  }
+  try {
+    const suggestions = await generateGeminiSuggestions(prompt);
+    res.json({ suggestions });
+  } catch (error) {
+    console.error("Error generating suggestions:", error);
+    res.status(500).send("Error generating suggestions.");
+  }
+});
+
+app.post("/api/ai/generate/ollama/suggestions", async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) {
+    return res.status(400).send("Prompt is required.");
+  }
+  try {
+    const suggestions = await generateOllamaSuggestions(prompt);
+    res.json({ suggestions });
+  } catch (error) {
+    console.error("Error generating suggestions:", error);
+    res.status(500).send("Error generating suggestions.");
+  }
+});
+
+app.post("/api/ai/generate/openrouter/suggestions", async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) {
+    return res.status(400).send("Prompt is required.");
+  }
+  try {
+    const suggestions = await generateOpenRouterSuggestions(prompt);
+    res.json({ suggestions });
+  } catch (error) {
+    console.error("Error generating suggestions:", error);
+    res.status(500).send("Error generating suggestions.");
+  }
 });
 
 app.listen(port, () => {

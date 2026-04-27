@@ -126,6 +126,21 @@ ${history.slice(-10).join("\n")}
 CONSIGNE : Continue l'histoire naturellement (3-5 phrases). Introduis un petit événement ou un PNJ. OBLIGATOIRE : Si tu introduis un personnage qui n'est pas dans la liste des personnages connus, inclus IMMÉDIATEMENT un tag [NOUVEAU_PERSO:Nom] minimum. Même si tu ne connais que le nom, écris [NOUVEAU_PERSO:Nom]. Si le nom est inconnu, utilise [NOUVEAU_PERSO:???|...]. Si un personnage connu change, inclus [MAJ_PERSO:Nom|...].
 `;
 
+export const getSuggestionsPrompt = (history: string[], spells?: Spell[], inventory?: InventoryItem[], npcs?: NPC[], stats?: GameStats) => `
+${NARRATIVE_CONTEXT}${getSpellListContext(spells ?? [], stats?.mana)}${getInventoryListContext(inventory ?? [])}${getNPCListContext(npcs ?? [])}${stats ? getStatsContext(stats, spells ?? [], inventory ?? []) : ""}
+
+DERNIERS ÉVÉNEMENTS :
+${history.slice(-10).join("\n")}
+
+CONSIGNE : Tu es le narrateur. Propose 2 ou 3 suggestions d'actions ou de suites d'histoire pour la protagoniste Élysia.
+Chaque suggestion doit être courte (1-2 phrases), immersive, et offrir une direction narrative intéressante et distincte des autres.
+Ne propose pas plus de 3 suggestions. Réponds UNIQUEMENT en JSON avec ce format exact :
+{
+  "suggestions": ["Suggestion 1", "Suggestion 2", "Suggestion 3 (optionnelle)"]
+}
+`;
+
+
 export function parseNewSpellsFromText(text: string): Spell[] {
   const regex = /\[NOUVEAU_SORT:([^|]+)\|(\d+)\|([^\]]+)\]/g;
   const spells: Spell[] = [];

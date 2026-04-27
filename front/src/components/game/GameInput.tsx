@@ -1,4 +1,4 @@
-import { Loader, SendHorizonal } from "lucide-react";
+import { Loader, SendHorizonal, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GameInputProps {
@@ -7,6 +7,8 @@ interface GameInputProps {
   onSubmit: () => void;
   isLoading: boolean;
   placeholder?: string;
+  onSuggest?: () => void;
+  isSuggesting?: boolean;
 }
 
 export function GameInput({
@@ -15,6 +17,8 @@ export function GameInput({
   onSubmit,
   isLoading,
   placeholder = "Décrivez une action...",
+  onSuggest,
+  isSuggesting,
 }: GameInputProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +27,7 @@ export function GameInput({
   };
 
   const isDisabled = isLoading || !prompt.trim();
+  const showSuggest = !prompt.trim() && !isLoading && onSuggest;
 
   return (
     <div
@@ -34,6 +39,30 @@ export function GameInput({
       }}
     >
       <form className="w-full flex gap-x-2 items-center" onSubmit={handleSubmit}>
+        {showSuggest && (
+          <button
+            type="button"
+            onClick={onSuggest}
+            disabled={isSuggesting}
+            className={cn(
+              "h-10 w-10 shrink-0 rounded-lg transition-all duration-500 flex items-center justify-center",
+              isSuggesting && "animate-pulse"
+            )}
+            style={{
+              background: "linear-gradient(135deg, rgba(201,162,39,0.12), rgba(201,162,39,0.2))",
+              border: "1px solid rgba(201,162,39,0.3)",
+              boxShadow: "0 0 15px rgba(201,162,39,0.1), inset 0 1px 0 rgba(255,255,255,0.08)",
+              color: "var(--gold-bright)",
+            }}
+            title="Demander une inspiration au conteur"
+          >
+            {isSuggesting ? (
+              <Loader className="h-4 w-4 animate-spin" />
+            ) : (
+              <Lightbulb className="h-4 w-4" />
+            )}
+          </button>
+        )}
         <div className="relative flex-1">
           <input
             disabled={isLoading}

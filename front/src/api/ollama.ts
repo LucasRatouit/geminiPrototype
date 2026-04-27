@@ -1,5 +1,5 @@
 import { API_URL } from "./config";
-import { getActionPrompt, getOpeningHookPrompt } from "../lib/game-prompts";
+import { getActionPrompt, getOpeningHookPrompt, getSuggestionsPrompt } from "../lib/game-prompts";
 import type { Spell } from "../lib/constants";
 import type { InventoryItem } from "../lib/constants";
 import type { NPC } from "../lib/constants";
@@ -120,4 +120,22 @@ export const streamOllamaResponse = (
   fetchEventSource(`${API_URL}/ai/generate/ollama/stream`, { prompt: fullPrompt, userMessage }, wrappedCallbacks);
 
   return { close: () => {} };
+};
+
+export const fetchOllamaSuggestions = async (
+  history: string[],
+  spells?: Spell[],
+  inventory?: InventoryItem[],
+  npcs?: NPC[],
+  stats?: GameStats,
+): Promise<string[]> => {
+  const prompt = getSuggestionsPrompt(history, spells, inventory, npcs, stats);
+  const res = await fetch(`${API_URL}/ai/generate/ollama/suggestions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return data?.suggestions ?? [];
 };

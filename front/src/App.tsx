@@ -4,6 +4,7 @@ import { useAI, type GenerationMode } from "@/hooks/useAI";
 import { Navbar, NAV_TABS } from "@/components/navbar";
 import { StoryMessages } from "@/components/game/StoryMessages";
 import { GameInput } from "@/components/game/GameInput";
+import { SuggestionModal } from "@/components/game/SuggestionModal";
 import { ModelSelectorTab } from "@/components/model-selector-tab";
 import { StatsTab } from "@/components/stats-tab";
 import { SpellsTab } from "@/components/spells-tab";
@@ -49,6 +50,8 @@ function App() {
     isPrompting, prompt, setPrompt,
     hookGeneratedRef, generateOpeningHook,
     handleAction,
+    isSuggesting, suggestions,
+    generateSuggestions, clearSuggestions,
   } = useAI(
     generationMode,
     messageList,
@@ -134,8 +137,21 @@ function App() {
                 onSubmit={handleAction}
                 isLoading={isPrompting}
                 placeholder="Décrivez l'action d'Élysia..."
+                onSuggest={generateSuggestions}
+                isSuggesting={isSuggesting}
               />
             </div>
+            {suggestions.length > 0 && (
+              <SuggestionModal
+                suggestions={suggestions}
+                isLoading={isSuggesting}
+                onSelect={(choice) => {
+                  setPrompt(choice);
+                  clearSuggestions();
+                }}
+                onClose={clearSuggestions}
+              />
+            )}
           </>
         ) : tab === "stats" ? (
           <StatsTab stats={stats} />
