@@ -4,7 +4,7 @@ import { useAI, type GenerationMode } from "@/hooks/useAI";
 import { Navbar, NAV_TABS } from "@/components/navbar";
 import { StoryMessages } from "@/components/game/StoryMessages";
 import { GameInput } from "@/components/game/GameInput";
-import { ModeSelector } from "@/components/game/ModeSelector";
+import { ModelSelectorTab } from "@/components/model-selector-tab";
 import { StatsTab } from "@/components/stats-tab";
 import { SpellsTab } from "@/components/spells-tab";
 import { BesaceTab } from "@/components/besace-tab";
@@ -13,8 +13,20 @@ import { Toasts } from "@/components/ui/Toasts";
 import { LevelUpModal } from "@/components/ui/LevelUpModal";
 import { MagicParticles } from "@/components/effects/MagicParticles";
 
+const STORAGE_KEY = "generationMode";
+
 function App() {
-  const [generationMode, setGenerationMode] = useState<GenerationMode>("ollama-stream");
+  const [generationMode, setGenerationMode] = useState<GenerationMode>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === "gemini" || saved === "ollama-stream" || saved === "openrouter-stream") {
+      return saved;
+    }
+    return "ollama-stream";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, generationMode);
+  }, [generationMode]);
 
   const {
     messageList, setMessageList,
@@ -116,7 +128,6 @@ function App() {
               onChoiceClick={(choice) => setPrompt(choice)}
             />
             <div className="w-full flex flex-col gap-2">
-              <ModeSelector mode={generationMode} setMode={setGenerationMode} />
               <GameInput
                 prompt={prompt}
                 setPrompt={setPrompt}
@@ -134,6 +145,8 @@ function App() {
           <BesaceTab inventory={inventory} stats={stats} />
         ) : tab === "npcs" ? (
           <PersoTab npcs={npcs} />
+        ) : tab === "settings" ? (
+          <ModelSelectorTab mode={generationMode} setMode={setGenerationMode} />
         ) : null}
       </div>
     </div>

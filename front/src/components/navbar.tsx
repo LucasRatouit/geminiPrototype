@@ -24,6 +24,7 @@ export const NAV_TABS: NavbarTab[] = [
   { id: "spells", icon: "🔮", label: "Sorts" },
   { id: "inventory", icon: "🎒", label: "Besace" },
   { id: "npcs", icon: "👥", label: "Perso." },
+  { id: "settings", icon: "⚙️", label: "Modèle" },
 ];
 
 const BAR_COLORS = {
